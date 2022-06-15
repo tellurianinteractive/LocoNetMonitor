@@ -39,8 +39,21 @@ The application monitors the LocoNet bus and updates its own cache of slots.
 - It then checks if the address used has an address reservation by a person.
 - If not, it sends **set speed zero** for that slot when throttle speed is above 1; the loco cannot be driven.
 
+The application actually does more:
+- Publish all LocoNet messages as UDP-packets on the local network.
+- Forwards LocoNet messages broadcasted on UDP to LocoNet.
+These two functions uses two different IP ports. 
+
+The UDP functionality is actually used for the internal communication in the application.
+
+
+### Create a Loco Address White List
+The application requires some loco address white list service.
 The simple way of doing address reservation is a local CSV-file on the computer where the application is running.
 Anyone can reserve addresses by mailing a CSV-file that the meeting administrator can incorporate with the master file.
+
+However, the application design permits implementing services that can get the white list from any source,
+also over the Internet.
 
 ### Further Improvements
 In the [Module Registry](https://moduleregistry.azurewebsites.net/) it is now possible 
@@ -48,9 +61,13 @@ to enter the FREMO-reserved loco addresses for each person and this has to be ma
 When that person register for a meeting and specific layout, the person's FREMO-reserved adresses
 will be booket for that person. This means that the application cant fetch the person's reserved addresses.
 This saves administration work of registering address reservaltions for FREMO members.
+It also reserves *only* registered persons reserved addresses, leaving all other reserved FREMO-addresses open
+to anyone else.
 
 A few weeks before the meeting opens, other participants will have the option to reserve 
 loco adresses. Of course, the application will guarantee that an adress can only be reserved by one person.
+
+**This solution combines makes it possible to use both address reservation schemes in a safe way.**
 
 
 
