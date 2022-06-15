@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+	<PropertyGroup>
+		<TargetFramework>net7.0</TargetFramework>
+		<AssemblyName>Tellurian.Trains.LocoNetMonitor</AssemblyName>
+		<RootNamespace>Tellurian.Trains.LocoNetMonitor</RootNamespace>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>dotnet-Worker-13D39342-14A2-4298-8912-1802CCF35560</UserSecretsId>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.0-preview.4.22229.4" />
+		<PackageReference Include="System.IO.Ports" Version="7.0.0-preview.4.22229.4" />
+	</ItemGroup>
+</Project>
