@@ -6,8 +6,8 @@ to avoid use of same loco address twice.
 When driving a loco, it is important that no other loco is accidential running aswell.
 
 There exists two models for address reservation:
-- The **FREMO** way, where members are assigned a set of loco addresses. 
-It is assumed that nobody else runs a loco with these addresses.
+- The **FREMO** way, where many members are assigned a set of loco addresses each. 
+It is assumed that nobody else runs a loco with these addresses at a meeting.
 - The **per meeting address reservation** where the participants are required to 
 check that the address is free before putting their locos on the track.
 - In some cases **both** models are practiced at the same meeting!
@@ -30,6 +30,9 @@ Although not bulletproof, a way to check what loco addresses that are actually u
 If the address is not reserved by a meeting particpant, the adress use will be restricted.
 The restriction is that the loco will not drive, until an address reservation is made.
 
+Any tool that can produce CSV can be used to make it easier to manage and to detect 
+possible double address reservations,
+
 ### The Loco Monitor Application
 The application monitors the LocoNet bus and updates its own cache of slots. 
 - When a message for a slot is received for the first time, the application request a complete slot read.
@@ -47,7 +50,7 @@ will be booket for that person. This means that the application cant fetch the p
 This saves administration work of registering address reservaltions for FREMO members.
 
 A few weeks before the meeting opens, other participants will have the option to reserve 
-loco adresses. Of course, the application will guarantee that an adress can only be booked by one person.
+loco adresses. Of course, the application will guarantee that an adress can only be reserved by one person.
 
 
 
