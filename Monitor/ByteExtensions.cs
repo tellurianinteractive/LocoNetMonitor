@@ -5,7 +5,6 @@ internal static class ByteExtensions
 
     public static bool IsLocoSlot(this byte slot) => slot > 0 && slot < 120;
 
-
     public static byte[] AppendChecksum(this byte[] dataWithoutChecksum)
     {
         if (dataWithoutChecksum is null) return Array.Empty<byte>();

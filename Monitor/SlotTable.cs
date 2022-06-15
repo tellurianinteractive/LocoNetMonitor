@@ -16,15 +16,13 @@ internal class SlotTable
 
     public Slot this[byte i] { get { return _table[i]; } }
     public bool BlockUnassignedAdresses { get; set; }
-    public Action<byte[]>? SendToLocoNet { get; set; }
-
     public IEnumerable<Slot> Slots => _table.Values;
 
     public async Task<byte> Update(byte[] loconetData, CancellationToken stoppingToken)
     {
         if (loconetData == null || loconetData.Length == 0) return 0;
         var slotNumber = GetSlotNumber(loconetData);
-        if (slotNumber == 0) return 0;
+        if (!slotNumber.IsLocoSlot()) return 0;
 
         var slot = _table[slotNumber];
         switch (loconetData[0])
@@ -90,7 +88,7 @@ internal class SlotTable
 
     private async Task RequestSlot(byte slotNumber, CancellationToken stoppingToken)
     {
-        if (!stoppingToken.IsCancellationRequested &&  CanSendToLocoNet(slotNumber))
+        if (!stoppingToken.IsCancellationRequested )
         {
             var data = new byte[] { 0xBB, slotNumber, 0x00 }.AppendChecksum();
             await _locoNetInterface.Write(data, stoppingToken);
@@ -99,14 +97,11 @@ internal class SlotTable
 
     private async Task SetSlotSpeedZero(byte slotNumber, CancellationToken stoppingToken)
     {
-        if (!stoppingToken.IsCancellationRequested && CanSendToLocoNet(slotNumber))
+        if (!stoppingToken.IsCancellationRequested)
         {
             var data = new byte[] { 0xA0, slotNumber, 0x00 }.AppendChecksum();
             await _locoNetInterface.Write(data, stoppingToken);
         }
     }
-
-    [MemberNotNullWhen(true, nameof(SendToLocoNet))]
-    bool CanSendToLocoNet(byte slotNumber) => SendToLocoNet is not null && slotNumber.IsLocoSlot();
 }
 

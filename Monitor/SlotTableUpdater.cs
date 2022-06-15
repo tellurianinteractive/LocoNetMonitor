@@ -20,7 +20,6 @@ internal class SlotTableUpdater : BackgroundService
         _options = options;
         _logger = logger;
         _slots = slots;
-        _slots.SendToLocoNet = SendLocoNet;
         _slots.BlockUnassignedAdresses = Settings.LocoNet.BlockDrivingForUnassignedAdresses;
         _udpSendEndPoint = new IPEndPoint(IPAddress.Parse(Settings.Udp.BroadcastIPAddress), Settings.Udp.SendPort);
         _udpSendClient = new UdpClient
@@ -40,11 +39,5 @@ internal class SlotTableUpdater : BackgroundService
             if (slotNumber > 0) _logger.LogInformation("Updated: {slot}", _slots[slotNumber].ToString());
             else _logger.LogDebug("Ignored: {message}", result.Buffer.ToHex());
         }
-    }
-
-    private void SendLocoNet(byte[] data)
-    {
-        var count = _udpSendClient.Send(data, data.Length, _udpSendEndPoint);
-        _logger.LogDebug("{service} sends data: {data}", nameof(SlotTableUpdater), data.ToHex());
     }
 }

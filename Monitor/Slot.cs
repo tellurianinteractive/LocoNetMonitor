@@ -24,7 +24,6 @@ public record Slot(byte Number)
     public bool HasOwner => !HasNoOwner;
     public bool HasNoAddress => !HasAddress;
     public bool HasAddress => Address > 0;
-    public DateTime LastUpdated { get; set; }
 
     public IEnumerable<bool> Functions => new[]
     {

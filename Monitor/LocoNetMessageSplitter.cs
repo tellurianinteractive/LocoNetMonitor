@@ -1,4 +1,5 @@
 ﻿namespace Tellurian.Trains.LocoNetMonitor;
+
 internal static class LocoNetMessageSplitter
 {
     public static IEnumerable<Packet> Split(this byte[] data)
@@ -25,7 +26,4 @@ internal static class LocoNetMessageSplitter
         }
         return result;
     }
-
-
-
 }
