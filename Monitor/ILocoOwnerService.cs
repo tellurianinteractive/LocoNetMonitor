@@ -9,7 +9,7 @@ public interface ILocoOwnerService
 public sealed class CsvFileLocoOwnerService : ILocoOwnerService
 {
     private readonly string Path;
-    public CsvFileLocoOwnerService(IOptions<MonitorSettings> options)
+    public CsvFileLocoOwnerService(IOptions<AppSettings> options)
     {
         var fullPathToCsvFile = options.Value.LocoOwnersListCsvFilePath;
         if (!File.Exists(fullPathToCsvFile)) throw new FileNotFoundException(fullPathToCsvFile);

@@ -1,6 +1,6 @@
 ﻿namespace Tellurian.Trains.LocoNetMonitor;
 
-public record MonitorSettings
+public record AppSettings
 {
     public string? LocoOwnersListCsvFilePath { get; init; }
     public LocoNet LocoNet { get; set; } = new LocoNet("COM1", 9600, 10000);

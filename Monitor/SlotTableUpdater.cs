@@ -3,19 +3,19 @@ using System.Net;
 using System.Net.Sockets;
 
 namespace Tellurian.Trains.LocoNetMonitor;
-public class SlotTableUpdater : BackgroundService
+internal class SlotTableUpdater : BackgroundService
 {
     private readonly ILogger _logger;
-    readonly IOptions<MonitorSettings> _options;
+    readonly IOptions<AppSettings> _options;
 
     readonly SlotTable _slots;
     readonly UdpClient _udpSendClient;
     readonly IPEndPoint _udpSendEndPoint;
 
 
-    MonitorSettings Settings => _options.Value;
+    AppSettings Settings => _options.Value;
 
-    public SlotTableUpdater(IOptions<MonitorSettings> options, SlotTable slots, ILogger<SlotTableUpdater> logger)
+    public SlotTableUpdater(IOptions<AppSettings> options, SlotTable slots, ILogger<SlotTableUpdater> logger)
     {
         _options = options;
         _logger = logger;
@@ -36,8 +36,7 @@ public class SlotTableUpdater : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             var result = await udpClient.ReceiveAsync(stoppingToken);
-            var slotNumber = _slots.Update(result.Buffer);
-
+            var slotNumber = await _slots.Update(result.Buffer, stoppingToken);
             if (slotNumber > 0) _logger.LogInformation("Updated: {slot}", _slots[slotNumber].ToString());
             else _logger.LogDebug("Ignored: {message}", result.Buffer.ToHex());
         }
