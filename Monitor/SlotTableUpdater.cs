@@ -37,7 +37,6 @@ internal class SlotTableUpdater : BackgroundService
             var result = await udpClient.ReceiveAsync(stoppingToken);
             var slotNumber = await _slots.Update(result.Buffer, stoppingToken);
             if (slotNumber > 0) _logger.LogInformation("Updated: {slot}", _slots[slotNumber].ToString());
-            else _logger.LogDebug("Ignored: {message}", result.Buffer.ToHex());
         }
     }
 }

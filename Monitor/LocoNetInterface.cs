@@ -50,6 +50,7 @@ internal sealed class LocoNetInterface : IDisposable
 
     public async Task<byte[]> WaitForData(CancellationToken cancellationToken)
     {
+        bool isFirstRead = true;
         if (!cancellationToken.IsCancellationRequested)
         {
             if (!_locoNetPort.IsOpen) _locoNetPort.Open();
@@ -59,12 +60,19 @@ internal sealed class LocoNetInterface : IDisposable
                 {
                     var data = new byte[_locoNetPort.BytesToRead];
                     var count = _locoNetPort.Read(data, 0, _locoNetPort.BytesToRead);
+                    var opcodeIndex = 0;
+                    if(isFirstRead)
+                    {
+                        opcodeIndex = data.IndexOfFirstOperationCode();
+                        if (opcodeIndex >= 0) isFirstRead = false;
+                        else return Array.Empty<byte>();
+                    }
                     if (count > 0)
                     {
 #if DEBUG
                         _logger.LogDebug("From LocoNet: {message}", data.ToHex());
 #endif
-                        return data;
+                        return data.Skip(opcodeIndex).ToArray();
                     }
                 }
                 catch (TimeoutException)

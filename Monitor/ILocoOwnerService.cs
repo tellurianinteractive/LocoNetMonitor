@@ -25,6 +25,7 @@ public sealed class CsvFileLocoOwnerService : ILocoOwnerService
             {
                 var items = line.Split(';');
                 if (items.Length > 1) return items[1];
+                else return null;
             }
         }
         return null;
