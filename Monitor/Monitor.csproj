@@ -7,7 +7,7 @@
 		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<UserSecretsId>dotnet-Worker-13D39342-14A2-4298-8912-1802CCF35560</UserSecretsId>
+		<UserSecretsId>Tellurian.Trains.LocoNetMonitor.Localhost</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>
