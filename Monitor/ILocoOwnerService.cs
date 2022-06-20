@@ -18,7 +18,7 @@ public sealed class CsvFileLocoOwnerService : ILocoOwnerService
     public string? GetOwner(short locoAddress)
     {
         var lines = File.ReadAllText(Path).Split(Environment.NewLine);
-        var address = locoAddress.ToString();
+        var address = $"{locoAddress};";
         foreach (var line in lines)
         {
             if (line.Length > 0 && line.StartsWith(address))
