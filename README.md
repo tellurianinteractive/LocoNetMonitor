@@ -55,6 +55,39 @@ Anyone can reserve addresses by mailing a CSV-file that the meeting administrato
 However, the application design permits implementing services that can get the white list from any source,
 also over the Internet.
 
+### Settings
+The *appsettings.json* contains all settings for the application. 
+You might have to change the following values:
+- **LocoNet Port**: the COM-port might be another on your system.
+- **BroadcastIPAddress**: the first three digits should be the same as your network address. The last digit should always be 255.
+- **LocoOwnersListCsvFilePath**: the localtion of the *white list** of permitted loco addresses.
+- **BlockDrivingForUnassignedAdresses** should only be true when you only want to use loco address in the *white list*.
+
+````
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.Hosting.Lifetime": "Information"
+    }
+  },
+  "AppSettings": {
+    "LocoOwnersListCsvFilePath": "./LocoListOwnerExample.txt",
+    "LocoNet": {
+      "Port": "COM4",
+      "BaudRate": 57600,
+      "ReadTimeout": 100,
+      "BlockDrivingForUnassignedAdresses": true
+    },
+    "Udp": {
+      "BroadcastIPAddress": "192.168.1.255",
+      "BroadcastPort": 34122,
+      "SendPort": 34121
+    }
+  }
+}
+````
+
 ### Further Improvements
 In the [Module Registry](https://moduleregistry.azurewebsites.net/) it is now possible 
 to enter the FREMO-reserved loco addresses for each person and this has to be made by an administrator.
