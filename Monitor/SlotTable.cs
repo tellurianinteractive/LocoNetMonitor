@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace Tellurian.Trains.LocoNetMonitor;
+﻿namespace Tellurian.Trains.LocoNetMonitor;
 internal class SlotTable
 {
     readonly Dictionary<byte, Slot> _table = new(127);

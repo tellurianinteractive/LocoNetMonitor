@@ -8,6 +8,7 @@
 /// </summary>
 internal static class LocoNetMessageSplitter
 {
+
     /// <summary>
     /// This method is intended to be called only after a first read from a data stream, 
     /// to find the first LocoNet Operation Code.

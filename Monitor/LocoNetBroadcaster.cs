@@ -40,7 +40,7 @@ internal class LocoNetBroadcaster : BackgroundService, IDisposable
                 overflow = Array.Empty<byte>();
                 foreach (var packet in packets)
                 {
-                    if (packet.IsComplete)
+                    if (packet.IsComplete && packet.Data.IsValidMessage())
                     {
                         _logger.LogDebug("Broadcast packet {packet}", packet);
                         var sent = await _broadcaster.SendAsync(packet.Data, packet.Length, _broadcastEndPoint);

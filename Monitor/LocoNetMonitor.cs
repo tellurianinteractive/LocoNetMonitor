@@ -28,7 +28,7 @@ internal sealed class LocoNetMonitor : BackgroundService, IDisposable
             try
             {
                 var result = await _listener.ReceiveAsync(stoppingToken);
-                if (result.Buffer.Length > 0)
+                if (result.Buffer.IsValidMessage())
                 {
                     await _locoNetInterface.Write(result.Buffer, stoppingToken);
 #if DEBUG
