@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 
@@ -30,7 +29,6 @@ internal class LocoNetBroadcaster : BackgroundService, IDisposable
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         byte[] overflow = Array.Empty<byte>();
-
         while (!stoppingToken.IsCancellationRequested)
         {
             var data = await _locoNetInterface.WaitForData(stoppingToken);
