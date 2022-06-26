@@ -25,6 +25,53 @@ public record Slot(byte Number)
     public bool HasNoAddress => !HasAddress;
     public bool HasAddress => Address > 0;
 
+    public void Update(byte[] loconetData)
+    {
+        switch (loconetData[0])
+        {
+            case 0xA0:
+                Speed = loconetData[2];
+                break;
+            case 0xA1:
+                DirectionAndFunctionsF0_F4 = loconetData[2];
+                break;
+            case 0xA2:
+                FunctionsF5_F8 = loconetData[2];
+                break;
+            case 0xA3:
+                FunctionsF9_F12 = loconetData[2];
+                break;
+            case 0xD4:
+                if (loconetData[1] != 0x20) break;
+                switch (loconetData[3])
+                {
+                    case 0x08:
+                        FunctionsF13_F19 = loconetData[4];
+                        break;
+                    case 0x09:
+                        FunctionsF21_F27 = loconetData[4];
+                        break;
+                    case 0x05:
+                        FunctionsF20AndF28 = loconetData[4];
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            case 0xE7:
+            case 0xEF:
+                if (loconetData.Length < 10 || loconetData[1] != 0x0E) break;
+                Status = loconetData[3];
+                Speed = loconetData[5];
+                DirectionAndFunctionsF0_F4 = loconetData[6];
+                FunctionsF5_F8 = loconetData[10];
+                SetAddress(loconetData[9], loconetData[4]);
+                break;
+            default:
+                return;
+        }
+    }
+
     public IEnumerable<bool> Functions => new[]
     {
         IsTrue(DirectionAndFunctionsF0_F4 & 0x10),

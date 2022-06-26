@@ -20,7 +20,7 @@ internal class SlotTableUpdater : BackgroundService
         _options = options;
         _logger = logger;
         _slots = slots;
-        _slots.BlockUnassignedAdresses = Settings.LocoNet.BlockDrivingForUnassignedAdresses;
+        _slots.BlockUnassignedAdresses = Settings.SlotTable.BlockDrivingForUnassignedAdresses;
         _udpSendEndPoint = new IPEndPoint(IPAddress.Parse(Settings.Udp.BroadcastIPAddress), Settings.Udp.SendPort);
         _udpSendClient = new UdpClient
         {

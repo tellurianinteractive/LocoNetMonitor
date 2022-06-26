@@ -1,6 +1,41 @@
 # LocoNet Monitor
 
-### Background
+This application makes it possible to read and write LocoNet messages over UDP. It has a number of advantages:
+- A single LocoNet interface as the *LocoNetBuffer NG* from *RR-Cirkits* can be utilised from more than one application.
+- Reading and writing UDP is well suited for the short messages that LocoNet uses.
+- You don't need the overhead of a TCP-connection.
+
+The basic application does :
+- Publish all LocoNet messages as UDP-packets on the local network.
+- Forwards LocoNet messages broadcasted on UDP to LocoNet.
+
+These two functions uses two different IP ports. 
+
+## Additional Services
+The application bundle also contain a service for maintaning a *slot table*.
+
+#### Slot Table Updater
+The *slot table updater* service monitors the LocoNet message flow for things related to loco control
+and updates the corresponding slot accordingly.
+
+The *slot table updater* also has a feature where loco addresses can be assigned to a named person.
+Optionally, it can be configured to block driving of loco addresses not assigned to any person.
+
+The *slot table updater* monitors the LocoNet bus and updates its own cache of slots. 
+- When a message for a slot is received for the first time, the application request a complete slot read.
+- It then checks if the address used has an address reservation by a person.
+- If the loco address is unassignedit sends **set speed zero** for that slot when throttle speed is above 1; the loco cannot be driven.
+*NOTE that blocking loco driving is an optional feature that you enable in the configuration.*
+
+The *slot table updater*  requires some loco address white list service.
+The simple way of doing address reservation is a local CSV-file on the computer where the application is running.
+Anyone can reserve addresses by mailing a CSV-file that the meeting administrator can incorporate with the master file.
+Any tool that can produce CSV can be used.
+
+However, the application design permits implementing services that can get the white list from any source,
+also over the Internet.
+
+##### Background
 At module meetings, managing address reservation for the participants locos is essential 
 to avoid use of same loco address twice. 
 When driving a loco, it is important that no other loco is accidential running aswell.
@@ -25,35 +60,9 @@ in a meeting, but *all* FREMO member's addresses are stil reserved.
 at each meeting. In this case, the user of the address is known **if**
 the person actually do reserve an adress.
 
-### A Possible Improvement
 Although not bulletproof, a way to check what loco addresses that are actually used.
-If the address is not reserved by a meeting particpant, the adress use will be restricted.
-The restriction is that the loco will not drive, until an address reservation is made.
-
-Any tool that can produce CSV can be used to make it easier to manage and to detect 
-possible double address reservations,
-
-### The Loco Monitor Application
-The application monitors the LocoNet bus and updates its own cache of slots. 
-- When a message for a slot is received for the first time, the application request a complete slot read.
-- It then checks if the address used has an address reservation by a person.
-- If not, it sends **set speed zero** for that slot when throttle speed is above 1; the loco cannot be driven.
-
-The application actually does more:
-- Publish all LocoNet messages as UDP-packets on the local network.
-- Forwards LocoNet messages broadcasted on UDP to LocoNet.
-These two functions uses two different IP ports. 
-
-The UDP functionality is actually used for the internal communication in the application.
-
-
-### Create a Loco Address White List
-The application requires some loco address white list service.
-The simple way of doing address reservation is a local CSV-file on the computer where the application is running.
-Anyone can reserve addresses by mailing a CSV-file that the meeting administrator can incorporate with the master file.
-
-However, the application design permits implementing services that can get the white list from any source,
-also over the Internet.
+If the address is not reserved by a meeting particpant, the adress use will be noted as unassigned
+and optionally restricted  that the loco will not drive, until an address reservation is made.
 
 ### Settings
 The *appsettings.json* contains all settings for the application. 
@@ -61,7 +70,7 @@ You might have to change the following values:
 - **LocoNet Port**: the COM-port might be another on your system.
 - **BroadcastIPAddress**: the first three digits should be the same as your network address. The last digit should always be 255.
 - **LocoOwnersListCsvFilePath**: the localtion of the *white list** of permitted loco addresses.
-- **BlockDrivingForUnassignedAdresses** should only be true when you only want to use loco address in the *white list*.
+- **BlockDrivingForUnassignedAdresses** should be true when you only want to block driving for addresses not in the *white list*.
 
 ````
 {
@@ -72,17 +81,22 @@ You might have to change the following values:
     }
   },
   "AppSettings": {
-    "LocoOwnersListCsvFilePath": "./LocoListOwnerExample.txt",
     "LocoNet": {
       "Port": "COM4",
       "BaudRate": 57600,
       "ReadTimeout": 100,
-      "BlockDrivingForUnassignedAdresses": true
+      "MinWriteInterval": 100
     },
     "Udp": {
       "BroadcastIPAddress": "192.168.1.255",
       "BroadcastPort": 34122,
       "SendPort": 34121
+    },
+    "SlotTable": {
+      "BlockDrivingForUnassignedAdresses": false
+    },
+    "CsvFileLocoAddressOwnerService": {
+      "LocoOwnersListCsvFilePath": "./LocoListOwnerExample.txt"
     }
   }
 }
@@ -100,7 +114,7 @@ to anyone else.
 A few weeks before the meeting opens, other participants will have the option to reserve 
 loco adresses. Of course, the application will guarantee that an adress can only be reserved by one person.
 
-**This solution combines makes it possible to use both address reservation schemes in a safe way.**
+**This solution combines both address reservation schemes and makes it possible to use them a safe way.**
 
 
 

@@ -31,7 +31,7 @@ internal sealed class LocoNetInterface : IDisposable
         {
             if (!_locoNetPort.IsOpen) _locoNetPort.Open();
             _locoNetPort.Write(data, 0, data.Length);
-            await Task.Delay(100, stoppingToken);
+            await Task.Delay(Settings.LocoNet.MinWriteInterval, stoppingToken);
 
         }
         catch (InvalidOperationException)

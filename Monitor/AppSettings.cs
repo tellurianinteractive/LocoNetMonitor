@@ -2,13 +2,16 @@
 
 public record AppSettings
 {
-    public string? LocoOwnersListCsvFilePath { get; init; }
-    public LocoNet LocoNet { get; set; } = new LocoNet("COM1", 9600, 10000);
-    public Udp Udp { get; set; } = new Udp("192.168.0.255", 34000, 34001);
+    public LocoNetSettings LocoNet { get; init; } = new LocoNetSettings("COM1", 9600, 10000, 10);
+
+    public UdpSettings Udp { get; init; } = new UdpSettings("192.168.0.255", 34000, 34001);
+    public SlotTableSettings SlotTable { get; init; } = new(false);
+    public CsvFileLocoAddressOwnerServiceSettings? CsvFileLocoAddressOwnerService { get; init; }
 }
 
-public record LocoNet(string Port, int BaudRate, int ReadTimeout)
-{
-    public bool BlockDrivingForUnassignedAdresses { get; init; }
-};
-public record Udp(string BroadcastIPAddress, int BroadcastPort, int SendPort);
+public record LocoNetSettings(string Port, int BaudRate, int ReadTimeout, int MinWriteInterval);
+public record UdpSettings(string BroadcastIPAddress, int BroadcastPort, int SendPort);
+
+public record CsvFileLocoAddressOwnerServiceSettings() { public string? LocoOwnersListCsvFilePath { get; init; } }
+
+public record SlotTableSettings(bool BlockDrivingForUnassignedAdresses);
