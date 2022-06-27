@@ -37,4 +37,16 @@ internal static class LocoNetMessageExtensions
             _ => false
         };
     }
+
+    public static byte SlotNumber(this byte[] message)
+    {
+        if (message is null || message.Length == 0) return 0;
+        return message[0] switch
+        {
+            (>= 0xA0) and ( <= 0xA3) => message[1],
+            0xBB => message[1],
+            0xD4 => message[2],
+           _ => 0,
+        };
+    }
 }

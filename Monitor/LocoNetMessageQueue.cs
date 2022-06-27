@@ -42,7 +42,17 @@ public sealed class QueuedMessage
 
     private readonly DateTimeOffset Timestamp = DateTimeOffset.Now;
     private TimeSpan Delay => DateTimeOffset.Now - Timestamp;
-    public int Priority => Data.Priority() - Delay.Milliseconds;
+    public int Priority => OperationsCodePriority - Delay.Milliseconds;
     public override bool Equals(object? obj) => obj is QueuedMessage qm && qm.OperationsCode == OperationsCode && qm.SlotNumber == SlotNumber;
     public override int GetHashCode() => HashCode.Combine(OperationsCode, SlotNumber);
+
+    private int OperationsCodePriority => OperationsCode switch
+    {
+        0xA0 => 10,
+        0xA1 => 20,
+        0xA2 => 30,
+        0xA3 => 40,
+        0xD4 => 50,
+        _ => 0,
+    };
 }
