@@ -1,4 +1,4 @@
-﻿namespace Tellurian.Trains.LocoNetMonitor;
+﻿namespace Tellurian.Trains.LocoNetMonitor.LocoNet;
 
 internal record Packet(byte[] Data)
 {

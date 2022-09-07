@@ -1,14 +1,15 @@
-﻿using Microsoft.Extensions.Options;
-using System.IO.Ports;
+﻿using System.IO.Ports;
 
-namespace Tellurian.Trains.LocoNetMonitor;
-internal sealed class LocoNetInterface : IDisposable
+namespace Tellurian.Trains.LocoNetMonitor.LocoNet;
+internal sealed class SerialPortGateway : IDisposable, ISerialPortGateway
 {
     private readonly IOptions<AppSettings> _options;
-    readonly ILogger<LocoNetInterface> _logger;
+    readonly ILogger<SerialPortGateway> _logger;
     private readonly SerialPort _locoNetPort;
+    private readonly object _writeLock = new();
+    private readonly TextWriter _writer;
 
-    public LocoNetInterface(IOptions<AppSettings> options, ILogger<LocoNetInterface> logger)
+    public SerialPortGateway(IOptions<AppSettings> options, ILogger<SerialPortGateway> logger)
     {
         _options = options;
         _logger = logger;
@@ -17,6 +18,7 @@ internal sealed class LocoNetInterface : IDisposable
             Handshake = Handshake.None,
             ReadTimeout = Settings.LocoNet.ReadTimeout
         };
+        _writer = new StreamWriter(new FileStream(Filename(Settings.LoggingPath), FileMode.CreateNew, FileAccess.Write));
     }
 
     AppSettings Settings => _options.Value;
@@ -24,13 +26,15 @@ internal sealed class LocoNetInterface : IDisposable
     public async ValueTask Write(byte[] data, CancellationToken stoppingToken)
     {
         if (data == null || data.Length == 0 || stoppingToken.IsCancellationRequested) return;
-#if DEBUG
         _logger.LogDebug("To LocoNet: {message}", data.ToHex());
-#endif
         try
         {
-            if (!_locoNetPort.IsOpen) _locoNetPort.Open();
-            _locoNetPort.Write(data, 0, data.Length);
+            lock (_writeLock)
+            {
+                if (!_locoNetPort.IsOpen) _locoNetPort.Open();
+                _locoNetPort.Write(data, 0, data.Length);
+
+            }
             await Task.Delay(Settings.LocoNet.MinWriteInterval, stoppingToken);
 
         }
@@ -46,10 +50,15 @@ internal sealed class LocoNetInterface : IDisposable
         {
             // Ignore
         }
+        catch (Exception ex)
+        {
+            _logger.LogError("Write operation to serial port {port} failed. Reason {ex}", Settings.LocoNet.Port, ex.Message);
+        }
     }
 
     public async Task<byte[]> WaitForData(CancellationToken cancellationToken)
     {
+    Restart:
         bool isFirstRead = true;
         if (!cancellationToken.IsCancellationRequested)
         {
@@ -60,8 +69,9 @@ internal sealed class LocoNetInterface : IDisposable
                 {
                     var data = new byte[_locoNetPort.BytesToRead];
                     var count = _locoNetPort.Read(data, 0, _locoNetPort.BytesToRead);
+                    if (count > 0) await WriteReadBytesToFile(_writer, data);
                     var opcodeIndex = 0;
-                    if(isFirstRead)
+                    if (isFirstRead)
                     {
                         opcodeIndex = data.IndexOfFirstOperationCode();
                         if (opcodeIndex >= 0) isFirstRead = false;
@@ -69,9 +79,7 @@ internal sealed class LocoNetInterface : IDisposable
                     }
                     if (count > 0)
                     {
-#if DEBUG
                         _logger.LogDebug("From LocoNet: {message}", data.ToHex());
-#endif
                         return data.Skip(opcodeIndex).ToArray();
                     }
                 }
@@ -82,8 +90,7 @@ internal sealed class LocoNetInterface : IDisposable
                 catch (Exception ex)
                 {
                     _logger.LogError("{message}", ex.Message);
-                    _locoNetPort.Close();
-                    throw;
+                    goto Restart;
                 }
             }
             else
@@ -92,6 +99,20 @@ internal sealed class LocoNetInterface : IDisposable
             }
         }
         return Array.Empty<byte>();
+    }
+
+    private static string Filename(string directoryPath)
+    {
+        var dateTime = DateTime.Now.ToString("G").Replace(':', '_');
+        return $"{directoryPath}{nameof(SerialPortGateway)} {dateTime}.txt";
+    }
+
+    private static async Task WriteReadBytesToFile(TextWriter writer, byte[] data)
+    {
+        if (data.Length > 0 )
+        {
+            await writer.WriteLineAsync(data.SelectMany(b => b.ToString("X2")).ToArray());
+        }
     }
 
     #region Dispose
@@ -111,8 +132,14 @@ internal sealed class LocoNetInterface : IDisposable
     public void Dispose()
     {
         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        Dispose(disposing: true);
+        Dispose(true);
         GC.SuppressFinalize(this);
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Dispose();
+        return ValueTask.CompletedTask;
     }
     #endregion
 }

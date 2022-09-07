@@ -1,5 +1,5 @@
-﻿namespace Tellurian.Trains.LocoNetMonitor;
-internal static class LocoNetMessageExtensions
+﻿namespace Tellurian.Trains.LocoNetMonitor.LocoNet;
+internal static class MessageExtensions
 {
     public static string ToHex(this byte[] data) => string.Join(',', data.Select(b => b.ToString("X2")));
 
@@ -22,7 +22,7 @@ internal static class LocoNetMessageExtensions
         {
             check ^= data[i];
         }
-        return (byte)(~check);
+        return (byte)~check;
     }
 
     public static bool IsValidMessage(this byte[] message)
@@ -30,10 +30,10 @@ internal static class LocoNetMessageExtensions
         if (message is null || message.Length == 0) return false;
         return message[0] switch
         {
-            (>= 0x80) and (<= 0x8F) when message.Length == 2 && message[1] == Checksum(message[..1].ToArray()) => true,
-            (>= 0xA0) and (<= 0xBF) when message.Length == 4 && message[3] == Checksum(message[..3].ToArray()) => true,
-            (>= 0xC0) and (<= 0xDF) when message.Length == 6 && message[5] == Checksum(message[..5].ToArray()) => true,
-            (>= 0xE0) and (<= 0xFF) when message.Length == message[1] && message[message[1] - 1] == Checksum(message[..(message[1] - 1)]) => true,
+            >= 0x80 and <= 0x8F when message.Length == 2 && message[1] == Checksum(message[..1].ToArray()) => true,
+            >= 0xA0 and <= 0xBF when message.Length == 4 && message[3] == Checksum(message[..3].ToArray()) => true,
+            >= 0xC0 and <= 0xDF when message.Length == 6 && message[5] == Checksum(message[..5].ToArray()) => true,
+            >= 0xE0 and <= 0xFF when message.Length == message[1] && message[message[1] - 1] == Checksum(message[..(message[1] - 1)]) => true,
             _ => false
         };
     }
@@ -43,10 +43,10 @@ internal static class LocoNetMessageExtensions
         if (message is null || message.Length == 0) return 0;
         return message[0] switch
         {
-            (>= 0xA0) and ( <= 0xA3) => message[1],
+            >= 0xA0 and <= 0xA3 => message[1],
             0xBB => message[1],
             0xD4 => message[2],
-           _ => 0,
+            _ => 0,
         };
     }
 }

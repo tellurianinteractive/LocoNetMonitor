@@ -1,15 +1,15 @@
-namespace Tellurian.Trains.LocoNetMonitor.Tests;
+namespace Tellurian.Trains.LocoNetMonitor.Tests.LocoNet;
 
 
 [TestClass]
-public class LocoNetPriorityTests
+public class MessagePriorityQueueTests
 {
     [TestMethod]
     public void ComparesPriorityCorrectly()
     {
         var q1 = new byte[] { 0xA0, 1, 0, 0 };
         var q2 = new byte[] { 0xA1, 1, 0, 0 };
-        var target = new LocoNetMessageQueue();
+        var target = new MessagePriorityQueue();
         target.AddOrUpdate(q2);
         target.AddOrUpdate(q1);
         var r1 = target.TryGetNextMessage();

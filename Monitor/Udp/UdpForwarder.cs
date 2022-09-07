@@ -1,36 +1,35 @@
-﻿using Microsoft.Extensions.Options;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 
-namespace Tellurian.Trains.LocoNetMonitor;
-internal sealed class LocoNetMonitor : BackgroundService, IDisposable
-{ 
+namespace Tellurian.Trains.LocoNetMonitor.Udp;
+internal sealed class UdpForwarder : BackgroundService, IDisposable
+{
     private readonly IOptions<AppSettings> _options;
-    private readonly ILogger<LocoNetMonitor> _logger;
-    private readonly LocoNetInterface _locoNetInterface;
-    private readonly IPEndPoint _listenEndPoint;
-    private readonly UdpClient _listener;
+    private readonly ILogger<UdpForwarder> _logger;
+    private readonly ISerialPortGateway _locoNetGateway;
 
-    public LocoNetMonitor(IOptions<AppSettings> options, LocoNetInterface locoNetInterface, ILogger<LocoNetMonitor> logger)
+    public UdpForwarder(IOptions<AppSettings> options, ISerialPortGateway locoNetGateway, ILogger<UdpForwarder> logger)
     {
         _options = options;
         _logger = logger;
-        _locoNetInterface = locoNetInterface;
-        _listenEndPoint = new IPEndPoint(IPAddress.Any, Settings.Udp.SendPort); // SendPort is port used by services sending UDP to this service.
-        _listener = new UdpClient(_listenEndPoint);
+        _locoNetGateway = locoNetGateway;
     }
     AppSettings Settings => _options.Value;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        var localEndPoint = new IPEndPoint(IPAddress.Any, Settings.UdpForwarder.LocalPortNumber);
+        var listener = new UdpClient();
+        listener.Client.Bind(localEndPoint);
+        listener.JoinMulticastGroup(Settings.MulticastIPAddress());
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                var result = await _listener.ReceiveAsync(stoppingToken);
+                var result = await listener.ReceiveAsync(stoppingToken);
                 if (result.Buffer.IsValidMessage())
                 {
-                    await _locoNetInterface.Write(result.Buffer, stoppingToken);
+                    await _locoNetGateway.Write(result.Buffer, stoppingToken);
 #if DEBUG
                     _logger.LogDebug("To LocoNet: {message}", result.Buffer.ToHex());
 #endif
@@ -44,7 +43,7 @@ internal sealed class LocoNetMonitor : BackgroundService, IDisposable
             {
                 _logger.LogError(ex, "{message}", ex.Message);
             }
-            
+
         }
     }
 
@@ -57,8 +56,7 @@ internal sealed class LocoNetMonitor : BackgroundService, IDisposable
         {
             if (disposing)
             {
-                _locoNetInterface.Dispose();
-                _listener.Dispose();
+                if (_locoNetGateway is IDisposable disposable) disposable.Dispose();
             }
             disposedValue = true;
         }

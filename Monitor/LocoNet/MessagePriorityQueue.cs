@@ -1,5 +1,5 @@
-﻿namespace Tellurian.Trains.LocoNetMonitor;
-public class LocoNetMessageQueue
+﻿namespace Tellurian.Trains.LocoNetMonitor.LocoNet;
+internal class MessagePriorityQueue
 {
     readonly List<QueuedMessage> _queue = new(100);
     public void AddOrUpdate(byte[] locoNetMessage)
@@ -29,7 +29,7 @@ public class LocoNetMessageQueue
             var item = _queue.OrderBy(item => item.Priority).First();
             _queue.Remove(item);
             return item.Data;
-        } 
+        }
     }
 }
 

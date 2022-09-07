@@ -1,4 +1,4 @@
-﻿namespace Tellurian.Trains.LocoNetMonitor;
+﻿namespace Tellurian.Trains.LocoNetMonitor.LocoNet;
 
 /// <summary>
 /// A read operation from a buffered stream of bytes, for example a serial port, is not guaranteed
@@ -6,7 +6,7 @@
 /// read single LocoNet messages, but just a buffer of bytes that needs to be chunked up in 
 /// LocoNet messages. The methods in this class helps to do that.
 /// </summary>
-internal static class LocoNetMessageSplitter
+internal static class MessageSplitter
 {
 
     /// <summary>
@@ -28,7 +28,7 @@ internal static class LocoNetMessageSplitter
     /// <param name="data"></param>
     /// <returns>A sequence of zero, one or several <see cref="Packet"/>.</returns>
     /// <remarks>This method assumes that the first byte is a LocoNet Operation Code.</remarks>
-    public static IEnumerable<Packet> Split(this byte[] data)
+    public static IEnumerable<Packet> AsPackets(this byte[] data)
     {
         if (data.Length == 0) return Enumerable.Empty<Packet>();
         var result = new List<Packet>();
@@ -38,10 +38,10 @@ internal static class LocoNetMessageSplitter
         {
             var packet = data[i] switch
             {
-                (>= 0x80) and (<= 0x9F) when data.Length - i >= 2 => new Packet(s.Slice(i, 2).ToArray()),
-                (>= 0xA0) and (<= 0xBF) when data.Length - i >= 4 => new Packet(s.Slice(i, 4).ToArray()),
-                (>= 0xC0) and (<= 0xDF) when data.Length - i >= 6 => new Packet(s.Slice(i, 6).ToArray()),
-                (>= 0xE0) and (<= 0xFF) when data.Length - i >= data[i + 1] => new Packet(s.Slice(i, data[i + 1]).ToArray()),
+                >= 0x80 and <= 0x9F when data.Length - i >= 2 => new Packet(s.Slice(i, 2).ToArray()),
+                >= 0xA0 and <= 0xBF when data.Length - i >= 4 => new Packet(s.Slice(i, 4).ToArray()),
+                >= 0xC0 and <= 0xDF when data.Length - i >= 6 => new Packet(s.Slice(i, 6).ToArray()),
+                >= 0xE0 and <= 0xFF when data.Length - i >= data[i + 1] => new Packet(s.Slice(i, data[i + 1]).ToArray()),
                 _ => new Packet(data[i..].ToArray()) { IsComplete = false },
             };
             if (packet is not null)
