@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Tellurian.Trains.LocoNetMonitor.Slots;
@@ -11,7 +12,10 @@ public record Slot(byte Number)
     public string Id { get; set; } = string.Empty;
     public string? Owner { get; set; }
     public string? Name { get; set; }
-    public void SetAddress(byte highOrder, byte lowOrder) { Address = GetAddress(highOrder, lowOrder); }
+    public void SetAddress(byte highOrder, byte lowOrder)
+    {
+        Address = GetAddress(highOrder, lowOrder);
+    }
     public byte Speed { get; set; }
     public byte Status { get; set; }
     public byte DirectionAndFunctionsF0_F4 { private get; set; }
@@ -30,6 +34,8 @@ public record Slot(byte Number)
     public bool HasNoAddress => !HasAddress;
     public bool HasAddress => Address > 0;
 
+    public bool IsBlocked { get; set; }
+    
     public byte DirectionAndFunctionsF0_F4WithNewDirection(bool isForward) => (byte)(isForward ? DirectionAndFunctionsF0_F4 | 0x20 : DirectionAndFunctionsF0_F4 & 0x1F);
     public void Update(byte[] loconetData)
     {

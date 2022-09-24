@@ -35,7 +35,8 @@ internal sealed class SerialPortGateway : IDisposable, ISerialPortGateway
                 _locoNetPort.Write(data, 0, data.Length);
 
             }
-            await Task.Delay(Settings.LocoNet.MinWriteInterval, stoppingToken);
+            if (Settings.LocoNet.MinWriteInterval >=10 )
+                await Task.Delay(Settings.LocoNet.MinWriteInterval, stoppingToken);
 
         }
         catch (InvalidOperationException)
@@ -68,7 +69,7 @@ internal sealed class SerialPortGateway : IDisposable, ISerialPortGateway
                 try
                 {
                     var data = new byte[_locoNetPort.BytesToRead];
-                    var count = _locoNetPort.Read(data, 0, _locoNetPort.BytesToRead);
+                    var count = _locoNetPort.Read(data, 0, data.Length);
                     if (count > 0) await WriteReadBytesToFile(_writer, data);
                     var opcodeIndex = 0;
                     if (isFirstRead)

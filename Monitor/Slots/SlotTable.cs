@@ -32,8 +32,13 @@ internal class SlotTable
         var slot = _table[slotNumber];
         slot.Update(loconetData);
         if (slot.HasNoAddress) await RequestSlot(slot, stoppingToken);
-        else if (slot.HasNoOwner) slot.Owner = _locoOwnerService.GetOwner(slot.Address);
-        if (Settings.BlockDrivingForUnassignedAdresses && slot.HasNoOwner && slot.Speed > 1) await BlockLocoFromDriving(slot, stoppingToken);
+        else if (slot.HasNoOwner)
+        {
+            slot.Owner = _locoOwnerService.GetOwner(slot.Address);
+            if (slot.HasOwner) 
+                _logger.LogInformation("Slot {number} with address {address} was assigned to {owner}.", slot.Number, slot.Address, slot.Owner);
+        }
+        if (slot.Address > 0 && Settings.BlockDrivingForUnassignedAdresses && slot.HasNoOwner && slot.Speed > 1) await BlockLocoFromDriving(slot, stoppingToken);
         else if (slot.Usage <= Usage.Idle) await SetSlotActive(slot, stoppingToken);
         return slotNumber;
     }
@@ -60,6 +65,7 @@ internal class SlotTable
 
     internal async Task RequestSlot(Slot slot, CancellationToken stoppingToken)
     {
+        _logger.LogDebug("Requesting slot {number}", slot.Number);
         var data = new byte[] { 0xBB, slot.Number, 0x00 }.AppendChecksum();
         await _locoNetGateway.Write(data, stoppingToken);
     }

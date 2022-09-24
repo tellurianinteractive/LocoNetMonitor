@@ -4,7 +4,7 @@
 		<TargetFramework>net7.0</TargetFramework>
 		<AssemblyName>Tellurian.Trains.LocoNetMonitor</AssemblyName>
 		<RootNamespace>Tellurian.Trains.LocoNetMonitor</RootNamespace>
-		<Version>1.1.0</Version>
+		<Version>1.2.0</Version>
 		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -14,7 +14,7 @@
 	<ItemGroup>
 	  <_WebToolingArtifacts Remove="Properties\PublishProfiles\linux-arm-32.pubxml" />
 	  <_WebToolingArtifacts Remove="Properties\PublishProfiles\linux-arm-64.pubxml" />
-	  <_WebToolingArtifacts Remove="Properties\PublishProfiles\win-64.pubxml" />
+	  <_WebToolingArtifacts Remove="Properties\PublishProfiles\win-x64.pubxml" />
 	</ItemGroup>
 
 	<ItemGroup>
