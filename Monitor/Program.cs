@@ -16,7 +16,8 @@ IHost host = Host.CreateDefaultBuilder(args)
     services.AddHostedService<UdpBroadcaster>();
     services.AddHostedService<UdpForwarder>();
     services.AddHostedService<SlotTableUpdater>();
-    services.AddHostedService<WiThrottleServer>(); services.AddSingleton<ISerialPortGateway, SerialPortGateway>();
+    services.AddHostedService<WiThrottleServer>(); 
+    services.AddSingleton<ISerialPortGateway, SerialPortGateway>();
 
     WriteStartingMessage(context, services);
 })
@@ -28,8 +29,5 @@ static void WriteStartingMessage(HostBuilderContext context, IServiceCollection 
 {
     var provider = services.BuildServiceProvider();
     var logger = provider.GetService<ILogger<SerialPortGateway>>();
-    if (logger is not null)
-    {
-        logger.LogInformation("Tellurian LocoNet Monitor, version {version}, environment {environment}", Assembly.GetExecutingAssembly()?.GetName()?.Version?.ToString(3), context.HostingEnvironment.EnvironmentName);
-    }
+    logger?.LogInformation("Tellurian LocoNet Monitor, version {version}, environment {environment}", Assembly.GetExecutingAssembly()?.GetName()?.Version?.ToString(3), context.HostingEnvironment.EnvironmentName);
 }

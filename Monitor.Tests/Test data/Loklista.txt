@@ -1,0 +1,11 @@
+Arne Larsson;9217,9297
+Håkan Grundstedt;214,254,618
+Jan Otterbäck;1003,1062
+Seth Olofsson;5601,5605,5628,5636,5638,5693
+Stefan Fjällemark;56,95-98,505,540,660,709,788,797,833,958,980,994
+Steinar Snøtun;2600-2699,5612,5620
+Christer Ritterberg;5643,5645,5682,5644
+Anders Östvall;1784
+Jan Petter Kamnes;8301
+Stefan Pettersson;606,641,1052,1150,1330,1331,1892,1921,3110
+Henry Carlsson;5875

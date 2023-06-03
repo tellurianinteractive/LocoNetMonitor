@@ -10,9 +10,9 @@ public  class CsvFileLocoOwnerServiceTests
     [TestMethod]
     public void AllAddressesAreUnique()
     {
-        var options = Options.Create(new AppSettings() { CsvFileLocoAddressOwnerService = new CsvFileLocoAddressOwnerServiceSettings() { LocoOwnersListCsvFilePath = @"C:\Temp\Loklista.txt" } });
+        var options = Options.Create(new AppSettings() { CsvFileLocoAddressOwnerService = new CsvFileLocoAddressOwnerServiceSettings() { LocoOwnersListCsvFilePath = @"Test data\Loklista.txt" } });
         var target = new CsvFileLocoOwnerService(options, new NullLogger<CsvFileLocoOwnerService>());
-        var x = target.GetOwner(82);
-        Assert.IsNotNull(x);
+        var owner = target.GetOwner(56);
+        Assert.IsNotNull(owner);
     }
 }

@@ -77,10 +77,10 @@ internal class WiThrottleServer : BackgroundService
 
         void RemoveClosedThrottles()
         {
-            foreach (var t in _throttles.Values.Where(t => t.IsDisconnected))
+            foreach (var throttle in _throttles.Values.Where(t => t.IsDisconnected))
             {
-                t.Dispose();
-                _throttles.Remove(t.EndPoint!.Address);
+                throttle.Dispose();
+                _throttles.Remove(throttle.EndPoint!.Address);
             }
         }
     }

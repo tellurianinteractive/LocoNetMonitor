@@ -21,4 +21,10 @@
 		<ProjectReference Include="..\Monitor\Monitor.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <None Update="Test data\Loklista.txt">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
+
 </Project>

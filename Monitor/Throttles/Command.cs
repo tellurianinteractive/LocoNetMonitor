@@ -3,7 +3,6 @@
 namespace Tellurian.Trains.LocoNetMonitor.Throttles;
 public abstract record Command
 {
-
     protected const string Delimiter = "<;>";
     public static bool TryParse(string line, [NotNullWhen(true)] out Command? entry)
     {
@@ -12,7 +11,7 @@ public abstract record Command
         var type = GetEntryType(text);
         if (type is null) return false;
         entry = (Command?)Activator.CreateInstance(type);
-        if (entry is not null) entry.Init(text.Split(Delimiter));
+        entry?.Init(text.Split(Delimiter));
         return entry is not null;
     }
 

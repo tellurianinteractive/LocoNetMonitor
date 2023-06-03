@@ -106,6 +106,7 @@ internal class Throttle : IDisposable
             }
             catch (ObjectDisposedException)
             {
+                _logger.LogWarning("Cannot receive message because TCP connection is closed.");
                 break;
             }
             catch (IOException ex)
