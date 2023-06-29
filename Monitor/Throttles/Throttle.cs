@@ -14,12 +14,12 @@ internal class Throttle : IDisposable
     private readonly Task _receiveTask;
     private readonly CancellationTokenSource _cancellationTokenSource;
     private readonly WiThrottleServerSettings _settings;
-    private readonly SlotTable _slotTable;
+    private readonly ISlotTable _slotTable;
     private readonly List<Loco> _locos = new();
     private readonly PeriodicTimer _timer;
     private readonly Task _timerTask;
 
-    public Throttle(TcpClient connection, WiThrottleServerSettings settings, SlotTable slotTable, ILogger logger)
+    public Throttle(TcpClient connection, WiThrottleServerSettings settings, ISlotTable slotTable, ILogger logger)
     {
         _connection = connection;
         _settings = settings;
@@ -28,9 +28,9 @@ internal class Throttle : IDisposable
         _logger = logger;
         _stream = connection.GetStream();
         _stream.ReadTimeout = _settings.Timeout * 1000;
-        _receiveTask = ReceiveAsync(_cancellationTokenSource.Token);
+        _receiveTask = new( async () => await ReceiveAsync(_cancellationTokenSource.Token));
         _timer = new PeriodicTimer(TimeSpan.FromSeconds(_settings.Timeout));
-        _timerTask = OnTimerAsync(_cancellationTokenSource.Token);
+        _timerTask = new Task(async() => await  OnTimerAsync(_cancellationTokenSource.Token));
     }
 
     public bool IsConnected { get; private set; }
@@ -57,12 +57,13 @@ internal class Throttle : IDisposable
             {
                 await _timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false);
                 await SendMessageAsync("*");
-           }
+            }
             catch (OperationCanceledException)
             {
                 _logger.LogWarning("Heartbeat timer is stopped.");
             }
         }
+        _logger.LogInformation("Heartbeat timer is stopped.");
     }
 
     public async Task SendMessageAsync(string message)
@@ -91,7 +92,7 @@ internal class Throttle : IDisposable
         {
             try
             {
-                var x = _stream.ReadByte();
+                var x = _stream.ReadByte( );
                 if (x == -1) break;
                 var b = (byte)x;
                 if (p > 0 && b == 0xA0 || b == 0x0D)
@@ -223,9 +224,9 @@ internal class Throttle : IDisposable
             if (disposing)
             {
                 _cancellationTokenSource?.Cancel();
-                _receiveTask.Wait();
-                _timerTask.Dispose();
+                _stream?.Dispose();
                 _connection.Close();
+                _timer?.Dispose();
             }
             disposedValue = true;
         }

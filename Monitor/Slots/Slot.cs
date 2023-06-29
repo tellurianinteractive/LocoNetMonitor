@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Tellurian.Trains.LocoNetMonitor.Slots;
@@ -15,6 +14,11 @@ public record Slot(byte Number)
     public void SetAddress(byte highOrder, byte lowOrder)
     {
         Address = GetAddress(highOrder, lowOrder);
+    }
+    public void SetAddress(int address)
+    {
+        if (address < 1 || address > 9999) throw new ArgumentOutOfRangeException(nameof(address), address.ToString());
+        Address = (short)address;
     }
     public byte Speed { get; set; }
     public byte Status { get; set; }
@@ -33,9 +37,10 @@ public record Slot(byte Number)
     public bool HasOwner => !HasNoOwner;
     public bool HasNoAddress => !HasAddress;
     public bool HasAddress => Address > 0;
+    public bool IsFree => (Status & 0x30) == 0;
 
     public bool IsBlocked { get; set; }
-    
+
     public byte DirectionAndFunctionsF0_F4WithNewDirection(bool isForward) => (byte)(isForward ? DirectionAndFunctionsF0_F4 | 0x20 : DirectionAndFunctionsF0_F4 & 0x1F);
     public void Update(byte[] loconetData)
     {
@@ -116,6 +121,74 @@ public record Slot(byte Number)
         IsTrue(FunctionsF21_F27 & 0x40),
         IsTrue(FunctionsF20AndF28 & 0x40),
     };
+
+    public void SetFunction(int function, bool setOn)
+    {
+        if (setOn)
+        {
+            if (function <= 4) DirectionAndFunctionsF0_F4 |= AsOnBitInByte(function);
+            else if (function <= 8) FunctionsF5_F8 |= AsOnBitInByte(function);
+            else if (function <= 12) FunctionsF9_F12 |= AsOnBitInByte(function);
+            else if (function <= 19) FunctionsF13_F19 |= AsOnBitInByte(function);
+            else if (function <= 20) FunctionsF20AndF28 |= AsOnBitInByte(function);
+            else if (function <= 27) FunctionsF21_F27 |= AsOnBitInByte(function);
+            else if (function <= 28) FunctionsF20AndF28 |= AsOnBitInByte(function);
+        }
+        else
+        {
+            if (function <= 4) DirectionAndFunctionsF0_F4 &= AsOffBitInByte(function);
+            else if (function <= 8) FunctionsF5_F8 &= AsOffBitInByte(function);
+            else if (function <= 12) FunctionsF9_F12 &= AsOffBitInByte(function);
+            else if (function <= 19) FunctionsF13_F19 &= AsOffBitInByte(function);
+            else if (function <= 20) FunctionsF20AndF28 &= AsOffBitInByte(function);
+            else if (function <= 27) FunctionsF21_F27 &= AsOffBitInByte(function);
+            else if (function <= 28) FunctionsF20AndF28 &= AsOffBitInByte(function);
+        }
+    }
+
+    private byte AsOffBitInByte(int function) =>
+        (byte)~AsOnBitInByte(function);
+
+    private byte AsOnBitInByte(int function) =>
+        function switch
+        {
+            0 => 0x10,
+            1 => 0x01,
+            2 => 0x02,
+            3 => 0x03,
+            4 => 0x04,
+            5 => 0x01,
+            6 => 0x02,
+            7 => 0x03,
+            8 => 0x04,
+            9 => 0x01,
+            10 => 0x02,
+            11 => 0x03,
+            12 => 0x04,
+            13 => 0x01,
+            14 => 0x02,
+            15 => 0x03,
+            16 => 0x04,
+            17 => 0x10,
+            18 => 0x20,
+            19 => 0x40,
+            20 => 0x20,
+            21 => 0x01,
+            22 => 0x02,
+            23 => 0x03,
+            24 => 0x04,
+            25 => 0x10,
+            26 => 0x20,
+            27 => 0x40,
+            28 => 0x40,
+            _ => 0
+        };
+
+    public void SetDirection(bool isForward)
+    {
+        if (isForward) DirectionAndFunctionsF0_F4 |= 0x20;
+        else DirectionAndFunctionsF0_F4 &= 0x1F;
+    }
 
     static bool IsTrue(int? value) => value.HasValue && value > 0;
     static short GetAddress(byte highOrder, byte lowOrder) => (short)(highOrder * 128 + lowOrder);

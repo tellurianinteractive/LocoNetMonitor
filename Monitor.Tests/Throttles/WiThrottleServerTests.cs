@@ -12,7 +12,7 @@ namespace Tellurian.Trains.LocoNetMonitor.Tests.Throttles;
 [TestClass]
 public class WiThrottleServerTests
 {
-    WiThrottleServer? Target { get; set; }
+    WiThrottleTestServer? Target { get; set; }
 
     static readonly AppSettings TestSettings = new();
 
@@ -32,7 +32,7 @@ public class WiThrottleServerTests
     [TestInitialize]
     public void TestInitialize()
     {
-        Target = Create();
+        Target = new(TestSettings.WiThrottleServer);
     }
 
     [TestMethod]
@@ -53,6 +53,10 @@ public class WiThrottleServerTests
         {
             using var stream = tcpClient.GetStream();
             await stream.WriteAsync("NTest".AsBytes());
+        }
+        else
+        {
+            Assert.Fail("Not connected.");
         }
         await Task.Delay(1000);
         tcpClient.Close();

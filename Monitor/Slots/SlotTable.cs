@@ -1,7 +1,7 @@
 ﻿using System.Net;
 
 namespace Tellurian.Trains.LocoNetMonitor.Slots;
-internal class SlotTable
+internal class SlotTable : ISlotTable
 {
     private const byte MaxSlots = 120;
     private readonly Dictionary<byte, Slot> _table = new(MaxSlots);
@@ -35,7 +35,7 @@ internal class SlotTable
         else if (slot.HasNoOwner)
         {
             slot.Owner = _locoOwnerService.GetOwner(slot.Address);
-            if (slot.HasOwner) 
+            if (slot.HasOwner)
                 _logger.LogInformation("Slot {number} with address {address} was assigned to {owner}.", slot.Number, slot.Address, slot.Owner);
         }
         if (slot.Address > 0 && Settings.BlockDrivingForUnassignedAdresses && slot.HasNoOwner && slot.Speed > 1) await BlockLocoFromDriving(slot, stoppingToken);
@@ -46,7 +46,7 @@ internal class SlotTable
     public IEnumerable<Slot> FindByLocoAddress(int address) => _table.Values.Where(s => s.Address == address);
     public IEnumerable<Slot> FindByIPAddress(IPAddress address) => _table.Values.Where(s => s.IPAddress == address);
 
-    private static byte GetSlotNumber(byte[] loconetData)
+    public byte GetSlotNumber(byte[] loconetData)
     {
         return loconetData[0] switch
         {
@@ -57,55 +57,56 @@ internal class SlotTable
         };
     }
 
-    internal async Task SetSlotActive(Slot slot, CancellationToken stoppingToken)
+    public async Task SetSlotActive(Slot slot, CancellationToken stoppingToken)
     {
         var data = new byte[] { 0xBA, slot.Number, slot.Number }.AppendChecksum();
         await _locoNetGateway.Write(data, stoppingToken);
     }
 
-    internal async Task RequestSlot(Slot slot, CancellationToken stoppingToken)
+    public async Task RequestSlot(Slot slot, CancellationToken stoppingToken)
     {
         _logger.LogDebug("Requesting slot {number}", slot.Number);
         var data = new byte[] { 0xBB, slot.Number, 0x00 }.AppendChecksum();
         await _locoNetGateway.Write(data, stoppingToken);
     }
-    internal async Task RequestAddress(int locoAddress, CancellationToken stoppingToken)
+
+    public async Task RequestAddress(int locoAddress, CancellationToken stoppingToken)
     {
         var data = new byte[] { 0xBF, (byte)(locoAddress >> 7), (byte)(locoAddress & 0xFF) }.AppendChecksum();
         await _locoNetGateway.Write(data, stoppingToken);
     }
 
-    internal async Task SetSlotInactive(Slot slot, CancellationToken stoppingToken)
+    public async Task SetSlotInactive(Slot slot, CancellationToken stoppingToken)
     {
         var data = new byte[] { 0xB5, slot.Number, (byte)(slot.Status & 0x87) }.AppendChecksum();
         await _locoNetGateway.Write(data, stoppingToken);
     }
 
-    internal async Task DispatchSlot(Slot slot, CancellationToken stoppingToken)
+    public async Task DispatchSlot(Slot slot, CancellationToken stoppingToken)
     {
         var data = new byte[] { 0xBA, slot.Number, 0x00 }.AppendChecksum();
         await _locoNetGateway.Write(data, stoppingToken);
     }
 
-    internal Task BlockLocoFromDriving(Slot slot, CancellationToken stoppingToken)
+    public Task BlockLocoFromDriving(Slot slot, CancellationToken stoppingToken)
     {
         _logger.LogWarning("Loco {loco} is blocked from driving. Please, reserve the address", slot.Address);
         return SetSlotSpeed(slot, 0, stoppingToken);
     }
 
-    internal async Task SetSlotSpeed(Slot slot, byte speed, CancellationToken stoppingToken)
+    public async Task SetSlotSpeed(Slot slot, byte speed, CancellationToken stoppingToken)
     {
         var data = new byte[] { 0xA0, slot.Number, speed }.AppendChecksum();
         await _locoNetGateway.Write(data, stoppingToken);
     }
 
-    internal async Task SetSlotDirection(Slot slot, bool isForward, CancellationToken stoppingToken)
+    public async Task SetSlotDirection(Slot slot, bool isForward, CancellationToken stoppingToken)
     {
         var data = new byte[] { 0xA1, slot.Number, slot.DirectionAndFunctionsF0_F4WithNewDirection(isForward) }.AppendChecksum();
         await _locoNetGateway.Write(data, stoppingToken);
     }
 
-    internal async Task SetSlotFunction(Slot slot, int function, bool setOn, CancellationToken stoppingToken)
+    public async Task SetSlotFunction(Slot slot, int function, bool setOn, CancellationToken stoppingToken)
     {
         var data = Array.Empty<byte>(); // TODO: Implement function setting on or off.
         if (data.Length > 0)
