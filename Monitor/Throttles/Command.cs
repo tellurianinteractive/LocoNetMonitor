@@ -37,6 +37,7 @@ public abstract record Command
             nameof(ActionCommand) when message.Contains(Delimiter + "R") => typeof(DirectionCommand),
             nameof(ActionCommand) when message.Contains(Delimiter + "q") => typeof(QueryCommand),
             nameof(ActionCommand) when message.Contains(Delimiter + "I") => typeof(Idle),
+            nameof(ActionCommand) when message.Contains(Delimiter + "X") => typeof(EmergencyStopCommand),
             _ => mapping.Value
         };
     }
@@ -47,6 +48,7 @@ public abstract record Command
         {NameCommand.Prefix, typeof(NameCommand) },
         {IdCommand.Prefix, typeof(IdCommand) },
         {Heartbeat.Prefix, typeof(Heartbeat) },
+        {DisconnectCommand.Prefix, typeof(DisconnectCommand) },
         {DispatchOrReleaseCommand.Prefix, typeof(DispatchOrReleaseCommand) },
         {ActionCommand.Prefix, typeof(ActionCommand) },
         {AssignCommand.Prefix, typeof(AssignCommand) },
@@ -85,6 +87,14 @@ public sealed record Heartbeat : Command
         if (fields[0].Length > 1) Timeout = int.Parse(fields[0][Prefix.Length..]);
     }
     public int Timeout { get; private set; }
+}
+
+public sealed record DisconnectCommand : Command
+{
+    public const string Prefix = "Q";
+    protected override void Init(string[] fields)
+    {
+    }
 }
 
 public abstract record DispatchOrReleaseCommand : Command
@@ -140,6 +150,14 @@ public abstract record ActionCommand : Command
     {
         All = fields[0][3] == '*';
         Key = All ? null : fields[0][3..];
+    }
+}
+
+public sealed record EmergencyStopCommand: ActionCommand
+{
+    protected override void Init(string[] fields)
+    {
+        base.Init(fields);
     }
 }
 

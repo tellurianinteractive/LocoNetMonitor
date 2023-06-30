@@ -180,4 +180,14 @@ public class WiThrottleParserTests
         Assert.AreEqual(4711, actual!.Address);
         Assert.AreEqual("M0+L4711<;>", actual!.Reply);
     }
+
+    [TestMethod]
+    public void ReturnsEmergencyStopCommand()
+    {
+        var actual = "MTA*<;>X".AsEntry() as EmergencyStopCommand;
+        Assert.IsInstanceOfType(actual, typeof(EmergencyStopCommand));
+        Assert.IsNull(actual!.Key);
+        Assert.IsTrue(actual!.All);
+
+    }
 }

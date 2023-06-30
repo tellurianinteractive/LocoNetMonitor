@@ -1,7 +1,7 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using Tellurian.Trains.LocoNetMonitor.Slots;
 
 namespace Tellurian.Trains.LocoNetMonitor.Throttles;
@@ -11,30 +11,36 @@ internal class WiThrottleServer : BackgroundService
 
     private readonly IOptions<AppSettings> _options;
     private readonly ILogger<WiThrottleServer> _logger;
-    private readonly IDictionary<IPAddress, Throttle> _throttles;
-    private readonly SlotTable _slotTable;
-    public WiThrottleServer(IOptions<AppSettings> options, SlotTable slotTable, ILogger<WiThrottleServer> logger)
+    private readonly ITimeProvider _timeProvider;
+    private readonly ConcurrentDictionary<IPAddress, Throttle> _throttles;
+    private readonly ISlotTable _slotTable;
+    public WiThrottleServer(IOptions<AppSettings> options, ISlotTable slotTable, ITimeProvider timeProvider, ILogger<WiThrottleServer> logger)
     {
         _options = options;
         _slotTable = slotTable;
+        _timeProvider = timeProvider;
         _logger = logger;
-        _throttles = new Dictionary<IPAddress, Throttle>(Settings.Backlog);
+        _throttles = new ConcurrentDictionary<IPAddress, Throttle>(Environment.ProcessorCount, Settings.Backlog);
     }
 
     private WiThrottleServerSettings Settings => _options.Value.WiThrottleServer;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public Task DebugExecuteAsync(CancellationToken cancellationToken) => ExecuteAsync(cancellationToken);
+    public IEnumerable<Throttle> Throttles => _throttles.Values;
+
+    protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("WiThrottle server is starting...");
         var tcpListener = new TcpListener(IPAddress.Any, Settings.PortNumber) { ExclusiveAddressUse = false };
-        while (!stoppingToken.IsCancellationRequested)
+        tcpListener.Start(Settings.Backlog);
+        _logger.LogInformation("TCP listener started listening on endpoint {localEndPoint}", tcpListener.LocalEndpoint);
+
+        while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
-                tcpListener.Start(Settings.Backlog);
-                _logger.LogInformation("TCP listener started listening on endpoint {endport}", tcpListener.LocalEndpoint);
-
-                var connection = await tcpListener.AcceptTcpClientAsync(stoppingToken);
+                var connection = await tcpListener.AcceptTcpClientAsync(cancellationToken);
+                _logger.LogDebug("TCP accepted connection from {RemoteEndPoint}", connection.Client.RemoteEndPoint);
                 RemoveClosedThrottles();
                 await TryCreateThrottle(connection);
             }
@@ -46,6 +52,7 @@ internal class WiThrottleServer : BackgroundService
             {
             }
         }
+
 
         try
         {
@@ -68,19 +75,19 @@ internal class WiThrottleServer : BackgroundService
                 }
                 else
                 {
-                    _throttles.Add(iPAddress, throttle);
+                    _throttles.TryAdd(iPAddress, throttle);
                 }
                 await throttle.Initialize();
-
+                _logger.LogInformation("Throttle {Throttle} created", throttle);
             }
         }
 
         void RemoveClosedThrottles()
         {
-            foreach (var throttle in _throttles.Values.Where(t => t.IsDisconnected))
+            foreach (var throttle in _throttles.Where(t => t.Value.IsDisconnected))
             {
-                throttle.Dispose();
-                _throttles.Remove(throttle.EndPoint!.Address);
+                throttle.Value.Dispose();
+                _throttles.TryRemove(throttle);
             }
         }
     }
@@ -90,7 +97,7 @@ internal class WiThrottleServer : BackgroundService
     {
         if (connection.Client.RemoteEndPoint is IPEndPoint endPoint && connection.Connected)
         {
-            throttle = new Throttle(connection, Settings, _slotTable, _logger);
+            throttle = new Throttle(connection, Settings, _slotTable, _timeProvider, _logger);
             iPAddress = endPoint.Address;
             return true;
         }
@@ -98,13 +105,4 @@ internal class WiThrottleServer : BackgroundService
         iPAddress = null;
         return false;
     }
-}
-
-public record Loco(char Id, string Key, int Address);
-
-public static class EncodingExtensions
-{
-    public static byte[] AsBytes(this string? text) =>
-        string.IsNullOrWhiteSpace(text) ? Array.Empty<byte>() : Encoding.UTF8.GetBytes(text);
-
 }

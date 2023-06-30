@@ -11,8 +11,9 @@ IHost host = Host.CreateDefaultBuilder(args)
 .ConfigureServices((context, services) =>
 {
     services.Configure<AppSettings>(context.Configuration.GetSection(nameof(AppSettings)));
-    services.AddSingleton<SlotTable>();
+    services.AddSingleton<ISlotTable,SlotTable>();
     services.AddSingleton<ILocoOwnerService, CsvFileLocoOwnerService>();
+    services.AddSingleton<ITimeProvider, SystemTimeProvider>();
     services.AddHostedService<UdpBroadcaster>();
     services.AddHostedService<UdpForwarder>();
     services.AddHostedService<SlotTableUpdater>();

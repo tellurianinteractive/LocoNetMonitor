@@ -9,34 +9,37 @@ internal class Throttle : IDisposable
 {
     public const int MaxLocos = 4;
     private readonly ILogger _logger;
+    private readonly ITimeProvider _timeProvider;
     private readonly TcpClient _connection;
     private readonly NetworkStream _stream;
-    private readonly Task _receiveTask;
     private readonly CancellationTokenSource _cancellationTokenSource;
     private readonly WiThrottleServerSettings _settings;
     private readonly ISlotTable _slotTable;
     private readonly List<Loco> _locos = new();
     private readonly PeriodicTimer _timer;
-    private readonly Task _timerTask;
 
-    public Throttle(TcpClient connection, WiThrottleServerSettings settings, ISlotTable slotTable, ILogger logger)
+    private Task _receiveTask = Task.CompletedTask;
+    private Task _timerTask = Task.CompletedTask;
+
+    public Throttle(TcpClient connection, WiThrottleServerSettings settings, ISlotTable slotTable, ITimeProvider timeProvider, ILogger logger)
     {
         _connection = connection;
         _settings = settings;
+        _timeProvider = timeProvider;
         _slotTable = slotTable;
         _cancellationTokenSource = new CancellationTokenSource();
         _logger = logger;
         _stream = connection.GetStream();
         _stream.ReadTimeout = _settings.Timeout * 1000;
-        _receiveTask = new( async () => await ReceiveAsync(_cancellationTokenSource.Token));
         _timer = new PeriodicTimer(TimeSpan.FromSeconds(_settings.Timeout));
-        _timerTask = new Task(async() => await  OnTimerAsync(_cancellationTokenSource.Token));
+        _timerTask = new Task(async () => await OnTimerAsync(_cancellationTokenSource.Token));
     }
 
     public bool IsConnected { get; private set; }
     public bool IsDisconnected => !IsConnected;
     public string Id { get; private set; } = string.Empty;
     public string Name { get; private set; } = string.Empty;
+    public DateTimeOffset? LastHeartbeat { get; private set; }
 
     public async Task Initialize()
     {
@@ -45,8 +48,8 @@ internal class Throttle : IDisposable
         await SendMessageAsync($"HTTellurian");
         await SendMessageAsync($"HtTellurian wiThrottle server {ProgramInfo.Version}");
         await SendMessageAsync($"*{_settings.Timeout}");
-        await Task.Run(() => _receiveTask.ConfigureAwait(false));
-        await Task.Run(() => _timerTask.ConfigureAwait(false));
+        _receiveTask = Task.Run(async () => await ReceiveAsync(_cancellationTokenSource.Token));
+        _timerTask = Task.Run(async () => await OnTimerAsync(_cancellationTokenSource.Token));
     }
 
     private async Task OnTimerAsync(CancellationToken stoppingToken)
@@ -60,10 +63,9 @@ internal class Throttle : IDisposable
             }
             catch (OperationCanceledException)
             {
-                _logger.LogWarning("Heartbeat timer is stopped.");
+                _logger.LogWarning("Heartbeat timer is canceled.");
             }
         }
-        _logger.LogInformation("Heartbeat timer is stopped.");
     }
 
     public async Task SendMessageAsync(string message)
@@ -71,8 +73,7 @@ internal class Throttle : IDisposable
         if (string.IsNullOrWhiteSpace(message)) return;
         try
         {
-            await _stream.WriteAsync(message.AsBytes()).ConfigureAwait(false);
-            await _stream.WriteAsync(Environment.NewLine.AsBytes()).ConfigureAwait(false);
+            await _stream.WriteAsync(message.AsBytes('\n')).ConfigureAwait(false);
             await _stream.FlushAsync().ConfigureAwait(false);
 
         }
@@ -92,18 +93,11 @@ internal class Throttle : IDisposable
         {
             try
             {
-                var x = _stream.ReadByte( );
-                if (x == -1) break;
-                var b = (byte)x;
-                if (p > 0 && b == 0xA0 || b == 0x0D)
-                {
-                    await ProcessMessage(Encoding.UTF8.GetString(buffer, 0, p).Trim('\n', '\r', ' '));
-                    p = 0;
-                }
-                else
-                {
-                    buffer[p++] = b;
-                }
+                var bytesRead = await _stream.ReadAsync(buffer, stoppingToken);
+                var data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                var messages = data.Split('\n').Where(m => m.Length > 0);
+                foreach (var message in messages) await ProcessMessage(message);
+
             }
             catch (ObjectDisposedException)
             {
@@ -112,7 +106,7 @@ internal class Throttle : IDisposable
             }
             catch (IOException ex)
             {
-                _logger.LogWarning("Throttle didn't respond within {timeout} seconds. {message}", _settings.Timeout, ex.Message);
+                _logger.LogWarning("Throttle didn't respond within {Timeout} seconds. {Message}", _settings.Timeout, ex.Message);
                 break;
             }
             catch (Exception ex)
@@ -123,7 +117,7 @@ internal class Throttle : IDisposable
         }
         await SetSpeed(SpeedCommand.Create(null, 1));
         await SetSpeed(SpeedCommand.Create(null, 0));
-        _logger.LogWarning("Throttle {ipaddress} {name} disconnected and its controlled locos are stopped.", EndPoint!.Address, Name);
+        _logger.LogWarning("Throttle {EndPoint} {ThrottleName} disconnected and its controlled locos are stopped.", EndPoint, Name);
         if (_connection.Connected) _connection.Close();
         _cancellationTokenSource.Cancel();
         IsConnected = false;
@@ -131,7 +125,6 @@ internal class Throttle : IDisposable
 
     private async Task ProcessMessage(string message)
     {
-        _logger.LogDebug("From {ipaddress}: {text}", EndPoint?.Address, message);
         if (Command.TryParse(message, out var entry))
         {
             if (entry is Heartbeat) HandleHeartbeat();
@@ -141,23 +134,24 @@ internal class Throttle : IDisposable
             else if (entry is DispatchCommand dispatchEntry) await DispatchLocoThrottle(dispatchEntry);
             else if (entry is ReleaseCommand releaseEntry) await RemoveLocoThrottle(releaseEntry);
             else if (entry is NameCommand nameEntry) Name = nameEntry.Name;
+            _logger.LogDebug("From {EndPoint}: {Message} {CommandType}", EndPoint, message, entry.GetType().Name);
 
             if (entry.HasReply) await SendMessageAsync(entry.Reply);
         }
         else
         {
-            _logger.LogWarning("Unsupported message from {ipaddress}: {text}", EndPoint?.Address, message);
+            _logger.LogWarning("Unsupported message from {EndPoint}: {Message}", EndPoint, message);
         }
     }
 
     private void HandleHeartbeat()
     {
-        _logger.LogDebug("Heartbeat from throttle IP {ipaddress} {name}.", EndPoint?.Address, Name);
+        LastHeartbeat = _timeProvider.UtcNow;
     }
 
     private async Task AddLocoToThrottle(AssignCommand entry)
     {
-        if (_locos.Count > MaxLocos) _logger.LogWarning("Throttle {ipaddress} cannot assign {key}. Max {max} locos is exceeded.", EndPoint?.Address, entry.Key, MaxLocos);
+        if (_locos.Count >= MaxLocos) _logger.LogWarning("Throttle {EndPoint} cannot assign {ThrottleKey}. Max {MaxLocos} locos is exceeded.", EndPoint, entry.Key, MaxLocos);
         var loco = _locos.SingleOrDefault(l => l.Key == entry.Key);
         if (loco is null) _locos.Add(new(entry.ThrottleId, entry.Key!, entry.Address));
         await _slotTable.RequestAddress(entry.Address, _cancellationTokenSource.Token);
@@ -215,6 +209,8 @@ internal class Throttle : IDisposable
     }
 
     public IPEndPoint? EndPoint => (IPEndPoint?)(_connection.Client?.RemoteEndPoint);
+
+    public override string ToString() => $"{EndPoint} {string.Join(",", _locos.Select(l => l.Address))}";
 
     private bool disposedValue;
     protected virtual void Dispose(bool disposing)

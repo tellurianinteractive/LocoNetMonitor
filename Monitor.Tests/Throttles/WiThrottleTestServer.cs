@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Tellurian.Trains.LocoNetMonitor.Services;
 using Tellurian.Trains.LocoNetMonitor.Slots;
@@ -13,22 +15,23 @@ internal class WiThrottleTestServer
         Server = Create(serverSettings);
     }
 
-    private WiThrottleServer Server { get; }
+    public WiThrottleServer Server { get; }
 
-    static WiThrottleServer Create(WiThrottleServerSettings serverSettings)
+    public static WiThrottleServer Create(WiThrottleServerSettings serverSettings)
     {
         var appSettings = new AppSettings() { WiThrottleServer = serverSettings };
         var services = new ServiceCollection();
         services.Configure<IOptions<AppSettings>>(x => Options.Create(appSettings));
-        services.AddLogging();
+        services.AddLogging(b => b.AddConsole().SetMinimumLevel(LogLevel.Debug));
+        services.AddSingleton<ITimeProvider, TestTimeProvider>();
         services.AddSingleton<ILocoOwnerService, StubLocoOwnerService>();
         services.AddSingleton<ISerialPortGateway, TestGateway>();
-        services.AddSingleton<SlotTable>();
+        services.AddSingleton<ISlotTable,TestSlotTable>();
         services.AddSingleton<WiThrottleServer>();
         var serviceProvider = services.BuildServiceProvider();
         return serviceProvider.GetService<WiThrottleServer>() ?? throw new ArgumentNullException(nameof(Server));
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken) { await Server.StartAsync(cancellationToken); }
-    public async Task StopAsync(CancellationToken cancellationToken) { await Server.StopAsync(cancellationToken); }
+    public Task StartAsync(CancellationToken cancellationToken) => Server.StartAsync(cancellationToken);
+    public Task StopAsync(CancellationToken cancellationToken) => Server.StopAsync(cancellationToken);
 }

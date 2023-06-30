@@ -1,11 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
-using Tellurian.Trains.LocoNetMonitor.Services;
-using Tellurian.Trains.LocoNetMonitor.Slots;
-using Tellurian.Trains.LocoNetMonitor.Tests.LocoNet;
-using Tellurian.Trains.LocoNetMonitor.Tests.Services;
 
 namespace Tellurian.Trains.LocoNetMonitor.Tests.Throttles;
 
@@ -16,20 +10,7 @@ public class WiThrottleServerTests
 
     static readonly AppSettings TestSettings = new();
 
-    static WiThrottleServer? Create()
-    {
-        var services = new ServiceCollection();
-        services.Configure<IOptions<AppSettings>>(x => Options.Create(TestSettings));
-        services.AddLogging();
-        services.AddSingleton<ILocoOwnerService, StubLocoOwnerService>();
-        services.AddSingleton<ISerialPortGateway, TestGateway>();
-        services.AddSingleton<SlotTable>();
-        services.AddSingleton<WiThrottleServer>();
-        var serviceProvider = services.BuildServiceProvider();
-        return serviceProvider.GetService<WiThrottleServer>();
-    }
-
-    [TestInitialize]
+       [TestInitialize]
     public void TestInitialize()
     {
         Target = new(TestSettings.WiThrottleServer);
