@@ -157,7 +157,8 @@ internal sealed class WiFredSimulator : IDisposable
 
     private async Task ReadFromServer(CancellationToken cancellationToken)
     {
-        byte[] buffer = new byte[1024];
+        var buffer = new byte[1024];
+        var delimiters = new char[]{ '\r', '\n' };
         while (!cancellationToken.IsCancellationRequested)
         {
             if (TcpConnection.Connected && TcpConnection.Available > 0)
@@ -168,7 +169,7 @@ internal sealed class WiFredSimulator : IDisposable
                     if (bytesRead > 0)
                     {
                         var data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                        var messages = data.Split(new char[] { '\r', '\n' }).Where(m => m.Length>0);
+                        var messages = data.Split(delimiters).Where(m => m.Length>0);
                         _receivedMessages.AddRange(messages);
                         LastActivity = TimeProvider.UtcNow;
                         Logger.LogDebug("Received {message}", string.Join("|", messages));

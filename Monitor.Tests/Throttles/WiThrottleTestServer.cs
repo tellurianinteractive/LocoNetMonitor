@@ -21,15 +21,12 @@ internal class WiThrottleTestServer
     {
         var appSettings = new AppSettings() { WiThrottleServer = serverSettings };
         var services = new ServiceCollection();
-        services.Configure<IOptions<AppSettings>>(x => Options.Create(appSettings));
         services.AddLogging(b => b.AddConsole().SetMinimumLevel(LogLevel.Debug));
-        services.AddSingleton<ITimeProvider, TestTimeProvider>();
         services.AddSingleton<ILocoOwnerService, StubLocoOwnerService>();
         services.AddSingleton<ISerialPortGateway, TestGateway>();
-        services.AddSingleton<ISlotTable,TestSlotTable>();
-        services.AddSingleton<WiThrottleServer>();
         var serviceProvider = services.BuildServiceProvider();
-        return serviceProvider.GetService<WiThrottleServer>() ?? throw new ArgumentNullException(nameof(Server));
+        return new WiThrottleServer(Options.Create(appSettings), new TestSlotTable(), new SystemTimeProvider(), serviceProvider.GetRequiredService<ILogger<WiThrottleServer>>());
+
     }
 
     public Task StartAsync(CancellationToken cancellationToken) => Server.StartAsync(cancellationToken);

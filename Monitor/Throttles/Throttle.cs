@@ -128,6 +128,7 @@ internal class Throttle : IDisposable
         if (Command.TryParse(message, out var entry))
         {
             if (entry is Heartbeat) HandleHeartbeat();
+            else if (entry is DisconnectCommand) Disconnect();
             else if (entry is SpeedCommand speedEntry) await SetSpeed(speedEntry);
             else if (entry is FunctionCommand functionCommand) await SetFunction(functionCommand);
             else if (entry is AssignCommand assignEntry) await AddLocoToThrottle(assignEntry);
@@ -147,6 +148,12 @@ internal class Throttle : IDisposable
     private void HandleHeartbeat()
     {
         LastHeartbeat = _timeProvider.UtcNow;
+    }
+
+    private void Disconnect()
+    {
+        _connection.Close();
+        IsConnected = false;
     }
 
     private async Task AddLocoToThrottle(AssignCommand entry)
@@ -211,6 +218,9 @@ internal class Throttle : IDisposable
     public IPEndPoint? EndPoint => (IPEndPoint?)(_connection.Client?.RemoteEndPoint);
 
     public override string ToString() => $"{EndPoint} {string.Join(",", _locos.Select(l => l.Address))}";
+
+    public override bool Equals(object? obj) => obj is Throttle item && item.EndPoint?.Equals(EndPoint) == true;
+    public override int GetHashCode() => EndPoint?.GetHashCode() ?? base.GetHashCode();
 
     private bool disposedValue;
     protected virtual void Dispose(bool disposing)
