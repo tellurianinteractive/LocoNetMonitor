@@ -135,6 +135,7 @@ internal class Throttle : IDisposable
             else if (entry is DispatchCommand dispatchEntry) await DispatchLocoThrottle(dispatchEntry);
             else if (entry is ReleaseCommand releaseEntry) await RemoveLocoThrottle(releaseEntry);
             else if (entry is NameCommand nameEntry) Name = nameEntry.Name;
+            else if (entry is IdCommand idEntry) Id = idEntry.Id;
             _logger.LogDebug("From {EndPoint}: {Message} {CommandType}", EndPoint, message, entry.GetType().Name);
 
             if (entry.HasReply) await SendMessageAsync(entry.Reply);

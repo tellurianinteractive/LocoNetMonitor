@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using System.Net;
 
 namespace Tellurian.Trains.LocoNetMonitor.Tests.Throttles;
@@ -18,7 +17,7 @@ public class WiThrottleTests
     private async Task<(WiThrottleTestServer server, WiFredSimulator simulator)> TestInitialize(int portNumber, int hearbeatTimeoutSeconds = 30)
     {
         var serverSettings = new WiThrottleServerSettings(portNumber, 50, hearbeatTimeoutSeconds);
-        var simulatorSettings = new WiFredSimulatorSettings(new (LocalAddress, portNumber), TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(10));
+        var simulatorSettings = new WiFredSimulatorSettings("TestThrottle", new (LocalAddress, portNumber), TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(10));
         var server = new WiThrottleTestServer(serverSettings);
         var simulator = new WiFredSimulator(simulatorSettings, TimeProvider, LogFactory.CreateLogger<WiFredSimulator>());
         await server.StartAsync(Token);
@@ -65,6 +64,17 @@ public class WiThrottleTests
         Assert.AreEqual(2, simulator.ReceivedMessages.Where(m => m=="*").Count());
         await TestCleanUp(server, simulator);
     }
+
+    [TestMethod]
+    public async Task ThrottleSendsRegistration()
+    {
+        var (server, simulator) = await TestInitialize(12094);
+        await Task.Delay(1000);
+        Assert.AreEqual("001122334455", server.Server.Throttles.First().Id);
+        Assert.AreEqual("TestThrottle", server.Server.Throttles.First().Name);
+        await TestCleanUp(server, simulator);
+    }
+
 
 
     private static IPAddress LocalAddress =>

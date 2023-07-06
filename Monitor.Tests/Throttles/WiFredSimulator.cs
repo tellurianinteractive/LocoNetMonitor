@@ -40,6 +40,8 @@ internal sealed class WiFredSimulator : IDisposable
     public TimeSpan NoActivityTimeout => Settings.NoActivityTimeout;
 
     private IPEndPoint ServerEndPoint => Settings.ServerEndPoint;
+    private string Name => Settings.ThrottleName;
+    private string Id => "001122334455";
 
     private readonly WiFredSimulatorSettings Settings;
     private readonly TcpClient TcpConnection;
@@ -59,7 +61,7 @@ internal sealed class WiFredSimulator : IDisposable
 
     private byte SpeedOfAttachedLocos { get; set; }
     private bool IsReversing;
-    private bool disposedValue;
+    private bool IsConnectedToServer => TcpConnection.Connected;
 
     public IEnumerable<string> ReceivedMessages => _receivedMessages;
     private readonly List<string> _receivedMessages = new(100);
@@ -90,8 +92,7 @@ internal sealed class WiFredSimulator : IDisposable
 
         await Disconnect();
         CancellationTokenSource.Cancel();
-        //Task.WaitAll(new[] { ReceiveTask!, RunTask! });
-
+        await Task.Delay(1000);
     }
 
     public async Task Run(CancellationToken cancellationToken)
@@ -113,52 +114,65 @@ internal sealed class WiFredSimulator : IDisposable
             {
                 IsEmergencyStop = false;
             }
-            await SendHeartBeat();
+            if ((TimeProvider.UtcNow - LastHeartBeat) >= KeepAliveTimeout) await SendHeartBeat();
             await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
         }
     }
 
-
     private async Task Disconnect()
     {
         Locos.Update(LocoState.Active, LocoState.Deactivating);
-        await WriteToServer("Q\n");
+        await WriteToServer("Q");
         await Task.Delay(500);
         TcpConnection.Close();
     }
 
     private async Task SendHeartBeat()
     {
-        if ((TimeProvider.UtcNow - LastHeartBeat) < KeepAliveTimeout) return;
-        await WriteToServer("*\n");
+        await WriteToServer("*");
         LastHeartBeat = TimeProvider.UtcNow;
         LastActivity = TimeProvider.UtcNow;
     }
 
+    private async Task RegisterThrottle()
+    {
+        await WriteToServer($"N{Name}");
+        await WriteToServer($"HU{Id}");
+    }
+
     private async Task SetEmergencyStop()
     {
-        await WriteToServer("MTA*<;>X\n");
+        await WriteToServer("MTA*<;>X");
     }
 
     private async Task WriteToServer(string command)
     {
-        var bytes = Encoding.UTF8.GetBytes(command);
-        try
+        if (IsConnectedToServer)
         {
-            await Stream.WriteAsync(bytes);
-            await Stream.FlushAsync();
-            LastActivity = TimeProvider.UtcNow;
+            var bytes = GetBytes(command);
+            try
+            {
+                await Stream.WriteAsync(bytes);
+                await Stream.FlushAsync();
+                LastActivity = TimeProvider.UtcNow;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Writing '{Command}' to server failed.", command);
+            }
         }
-        catch (Exception ex)
+        else
         {
-            Logger.LogError(ex, "Writing '{Command}' to server failed.", command.Replace("\n", ""));
+            Logger.LogError("Writing '{Command}' to server failed because not connected to server.", command);
         }
+
+        static byte[] GetBytes(string command) => Encoding.UTF8.GetBytes(command + '\n');
     }
 
     private async Task ReadFromServer(CancellationToken cancellationToken)
     {
         var buffer = new byte[1024];
-        var delimiters = new char[]{ '\r', '\n' };
+        var delimiters = new char[] { '\r', '\n' };
         while (!cancellationToken.IsCancellationRequested)
         {
             if (TcpConnection.Connected && TcpConnection.Available > 0)
@@ -169,8 +183,10 @@ internal sealed class WiFredSimulator : IDisposable
                     if (bytesRead > 0)
                     {
                         var data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                        var messages = data.Split(delimiters).Where(m => m.Length>0);
+                        var messages = data.Split(delimiters).Where(m => m.Length > 0);
+                        if (IsAnyTimeout(messages)) await SendHeartBeat();
                         _receivedMessages.AddRange(messages);
+                        if (_receivedMessages.Count == 4) await RegisterThrottle();
                         LastActivity = TimeProvider.UtcNow;
                         Logger.LogDebug("Received {message}", string.Join("|", messages));
                     }
@@ -178,7 +194,6 @@ internal sealed class WiFredSimulator : IDisposable
                 }
                 catch (Exception ex)
                 {
-
                     Logger.LogError(ex, "Read from server failed.");
                 }
             }
@@ -187,8 +202,12 @@ internal sealed class WiFredSimulator : IDisposable
                 await Task.Delay(100, cancellationToken);
             }
         }
+
+        static bool IsAnyTimeout(IEnumerable<string> messages) => messages.Any(m => m == "*");
     }
 
+    #region Dispose
+    private bool disposedValue;
     private void Dispose(bool disposing)
     {
         if (!disposedValue)
@@ -206,6 +225,7 @@ internal sealed class WiFredSimulator : IDisposable
         Dispose(true);
         GC.SuppressFinalize(this);
     }
+    #endregion Dispose
 }
 
 internal class Locos
@@ -215,6 +235,21 @@ internal class Locos
     public void SetAll(LocoState state) => States.SetAll(state);
     public void Update(LocoState oldState, LocoState newState) => States.SetWhen(newState, s => s == oldState);
     public bool AreAllInactive => States.All(s => s == LocoState.Inactive);
+
+    private uint Functions = 0;
+
+    public async Task Update(Func<string, Task> write)
+    {
+        for (var loco = 0; loco < States.Length; loco++)
+        {
+            if (States[loco] == LocoState.SetFunctions)
+            {
+
+            }
+        }
+    }
+
+    //private async Task SetFunction(int loco)
 }
 
 public enum LocoState
@@ -223,8 +258,8 @@ public enum LocoState
     ShouldActivate = 1,
     Active = 2,
     Deactivating = 3,
-    EnterFunctions = 4,
-    LeaveFunctions = 5
+    GetFunctions = 4,
+    SetFunctions = 5
 }
 
 public enum ThrottleState
@@ -236,4 +271,4 @@ public enum ThrottleState
     Disconnected
 }
 
-public record WiFredSimulatorSettings(IPEndPoint ServerEndPoint, TimeSpan KeepAliveTimeout, TimeSpan NoActivityTimeout);
+public record WiFredSimulatorSettings(string ThrottleName, IPEndPoint ServerEndPoint, TimeSpan KeepAliveTimeout, TimeSpan NoActivityTimeout);
