@@ -25,7 +25,7 @@ internal class MessagePriorityQueue
     {
         lock (_queue)
         {
-            if (_queue.Count == 0) return Array.Empty<byte>();
+            if (_queue.Count == 0) return [];
             var item = _queue.OrderBy(item => item.Priority).First();
             _queue.Remove(item);
             return item.Data;
@@ -33,10 +33,9 @@ internal class MessagePriorityQueue
     }
 }
 
-public sealed class QueuedMessage
+public sealed class QueuedMessage(byte[] data)
 {
-    public QueuedMessage(byte[] data) => Data = data;
-    public byte[] Data { get; }
+    public byte[] Data { get; } = data;
     public byte OperationsCode => Data[0];
     public byte SlotNumber => Data.SlotNumber();
 

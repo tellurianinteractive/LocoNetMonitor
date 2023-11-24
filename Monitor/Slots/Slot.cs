@@ -126,30 +126,30 @@ public record Slot(byte Number)
     {
         if (setOn)
         {
-            if (function <= 4) DirectionAndFunctionsF0_F4 |= AsOnBitInByte(function);
-            else if (function <= 8) FunctionsF5_F8 |= AsOnBitInByte(function);
-            else if (function <= 12) FunctionsF9_F12 |= AsOnBitInByte(function);
-            else if (function <= 19) FunctionsF13_F19 |= AsOnBitInByte(function);
-            else if (function <= 20) FunctionsF20AndF28 |= AsOnBitInByte(function);
-            else if (function <= 27) FunctionsF21_F27 |= AsOnBitInByte(function);
-            else if (function <= 28) FunctionsF20AndF28 |= AsOnBitInByte(function);
+            if (function <= 4) DirectionAndFunctionsF0_F4 |= ToOnBitInByte(function);
+            else if (function <= 8) FunctionsF5_F8 |= ToOnBitInByte(function);
+            else if (function <= 12) FunctionsF9_F12 |= ToOnBitInByte(function);
+            else if (function <= 19) FunctionsF13_F19 |= ToOnBitInByte(function);
+            else if (function <= 20) FunctionsF20AndF28 |= ToOnBitInByte(function);
+            else if (function <= 27) FunctionsF21_F27 |= ToOnBitInByte(function);
+            else if (function <= 28) FunctionsF20AndF28 |= ToOnBitInByte(function);
         }
         else
         {
-            if (function <= 4) DirectionAndFunctionsF0_F4 &= AsOffBitInByte(function);
-            else if (function <= 8) FunctionsF5_F8 &= AsOffBitInByte(function);
-            else if (function <= 12) FunctionsF9_F12 &= AsOffBitInByte(function);
-            else if (function <= 19) FunctionsF13_F19 &= AsOffBitInByte(function);
-            else if (function <= 20) FunctionsF20AndF28 &= AsOffBitInByte(function);
-            else if (function <= 27) FunctionsF21_F27 &= AsOffBitInByte(function);
-            else if (function <= 28) FunctionsF20AndF28 &= AsOffBitInByte(function);
+            if (function <= 4) DirectionAndFunctionsF0_F4 &= ToOffBitInByte(function);
+            else if (function <= 8) FunctionsF5_F8 &= ToOffBitInByte(function);
+            else if (function <= 12) FunctionsF9_F12 &= ToOffBitInByte(function);
+            else if (function <= 19) FunctionsF13_F19 &= ToOffBitInByte(function);
+            else if (function <= 20) FunctionsF20AndF28 &= ToOffBitInByte(function);
+            else if (function <= 27) FunctionsF21_F27 &= ToOffBitInByte(function);
+            else if (function <= 28) FunctionsF20AndF28 &= ToOffBitInByte(function);
         }
     }
 
-    private byte AsOffBitInByte(int function) =>
-        (byte)~AsOnBitInByte(function);
+    private static byte ToOffBitInByte(int function) =>
+        (byte)~ToOnBitInByte(function);
 
-    private byte AsOnBitInByte(int function) =>
+    private static byte ToOnBitInByte(int function) =>
         function switch
         {
             0 => 0x10,
@@ -201,7 +201,7 @@ public record Slot(byte Number)
         text.Append($"Slot {Number}, ");
         text.Append($"Address {AddressOrUnknown}, ");
         if (HasOwner) text.Append($"Owner: {Owner}, ");
-        else text.Append("Unreserved!, ");
+        else if(IsBlocked) text.Append("Unreserved!, ");
         text.Append($"Steps {SpeedSteps}, ");
         text.Append($"Speed {Speed}, ");
         text.Append($"Direction: {Direction}, ");

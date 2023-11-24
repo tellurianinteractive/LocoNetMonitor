@@ -52,7 +52,7 @@ internal sealed class WiFredSimulator : IDisposable
 
     private Task? ReceiveTask;
     private Task? RunTask;
-    private NetworkStream Stream;
+    private NetworkStream? Stream;
 
     private ThrottleState State;
     private DateTimeOffset LastHeartBeat;
@@ -152,8 +152,8 @@ internal sealed class WiFredSimulator : IDisposable
             var bytes = GetBytes(command);
             try
             {
-                await Stream.WriteAsync(bytes);
-                await Stream.FlushAsync();
+                await Stream!.WriteAsync(bytes);
+                await Stream!.FlushAsync();
                 LastActivity = TimeProvider.UtcNow;
             }
             catch (Exception ex)
@@ -179,7 +179,7 @@ internal sealed class WiFredSimulator : IDisposable
             {
                 try
                 {
-                    var bytesRead = await Stream.ReadAsync(buffer, cancellationToken);
+                    var bytesRead = await Stream!.ReadAsync(buffer, cancellationToken);
                     if (bytesRead > 0)
                     {
                         var data = Encoding.UTF8.GetString(buffer, 0, bytesRead);
@@ -238,7 +238,7 @@ internal class Locos
 
     private uint Functions = 0;
 
-    public async Task Update(Func<string, Task> write)
+    public async Task UpdateAsync(Func<string, Task> write)
     {
         for (var loco = 0; loco < States.Length; loco++)
         {

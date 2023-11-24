@@ -2,24 +2,17 @@
 using System.Net.Sockets;
 
 namespace Tellurian.Trains.LocoNetMonitor.Slots;
-internal class SlotTableUpdater : BackgroundService
+internal class SlotTableUpdater(IOptions<AppSettings> options, ISlotTable slots, ILogger<SlotTableUpdater> logger) : BackgroundService
 {
-    private readonly ILogger _logger;
-    readonly IOptions<AppSettings> _options;
-
-    readonly SlotTable _slots;
+    private readonly ILogger _logger = logger;
+    readonly IOptions<AppSettings> _options = options;
+    readonly ISlotTable _slots = slots;
 
     AppSettings Settings => _options.Value;
 
-    public SlotTableUpdater(IOptions<AppSettings> options, SlotTable slots, ILogger<SlotTableUpdater> logger)
-    {
-        _options = options;
-        _logger = logger;
-        _slots = slots;
-    }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("{service} is starting.", nameof(SlotTableUpdater));
+        _logger.LogInformation("{BackgroundService} is starting.", nameof(SlotTableUpdater));
         var listenEndpoint = new IPEndPoint(IPAddress.Any, Settings.UdpBroadcaster.LocalPortNumber);
     Restart:
         try
@@ -31,7 +24,7 @@ internal class SlotTableUpdater : BackgroundService
             {
                 var result = await udpClient.ReceiveAsync(stoppingToken);
                 var slotNumber = await _slots.Update(result.Buffer, stoppingToken);
-                if (slotNumber > 0) _logger.LogInformation("Updated: {slot}", _slots[slotNumber].ToString());
+                if (slotNumber > 0) _logger.LogInformation("Updated: {Slot}", _slots[slotNumber].ToString());
             }
 
         }
@@ -44,6 +37,6 @@ internal class SlotTableUpdater : BackgroundService
             _logger.LogError(ex, "Slot table updater failed: Exception type {type}.", ex.GetType().Name);
             goto Restart;
         }
-        _logger.LogInformation("{service} is stopping.", nameof(SlotTableUpdater));
+        _logger.LogInformation("{BackgroundService} is stopping.", nameof(SlotTableUpdater));
     }
 }

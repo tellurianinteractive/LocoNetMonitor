@@ -26,7 +26,7 @@ internal sealed class SerialPortGateway : IDisposable, ISerialPortGateway
     public async ValueTask Write(byte[] data, CancellationToken stoppingToken)
     {
         if (data == null || data.Length == 0 || stoppingToken.IsCancellationRequested) return;
-        _logger.LogDebug("To LocoNet: {message}", data.ToHex());
+        _logger.LogDebug("To LocoNet: {LocoNetMessage}", data.ToHex());
         try
         {
             lock (_writeLock)
@@ -41,11 +41,11 @@ internal sealed class SerialPortGateway : IDisposable, ISerialPortGateway
         }
         catch (InvalidOperationException)
         {
-            _logger.LogError("Serial port {port} is not opened.", Settings.LocoNet.Port);
+            _logger.LogError("Serial port {SerialPort} is not opened.", Settings.LocoNet.Port);
         }
         catch (TimeoutException)
         {
-            _logger.LogWarning("Write operation to serial port {port} timed out.", Settings.LocoNet.Port);
+            _logger.LogWarning("Write operation to serial port {SerialPort} timed out.", Settings.LocoNet.Port);
         }
         catch (OperationCanceledException)
         {
@@ -53,7 +53,7 @@ internal sealed class SerialPortGateway : IDisposable, ISerialPortGateway
         }
         catch (Exception ex)
         {
-            _logger.LogError("Write operation to serial port {port} failed. Reason {ex}", Settings.LocoNet.Port, ex.Message);
+            _logger.LogError("Write operation to serial port {SerialPort} failed. Reason {ex}", Settings.LocoNet.Port, ex.Message);
         }
     }
 
@@ -76,11 +76,11 @@ internal sealed class SerialPortGateway : IDisposable, ISerialPortGateway
                     {
                         opcodeIndex = data.IndexOfFirstOperationCode();
                         if (opcodeIndex >= 0) isFirstRead = false;
-                        else return Array.Empty<byte>();
+                        else return [];
                     }
                     if (count > 0)
                     {
-                        _logger.LogDebug("From LocoNet: {message}", data.ToHex());
+                        _logger.LogDebug("From LocoNet: {LocoNetMessage}", data.ToHex());
                         return data.Skip(opcodeIndex).ToArray();
                     }
                 }
@@ -90,7 +90,7 @@ internal sealed class SerialPortGateway : IDisposable, ISerialPortGateway
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError("{message}", ex.Message);
+                    _logger.LogError("{LocoNetMessage}", ex.Message);
                     goto Restart;
                 }
             }
@@ -99,7 +99,7 @@ internal sealed class SerialPortGateway : IDisposable, ISerialPortGateway
                 await Task.Delay(100, cancellationToken);
             }
         }
-        return Array.Empty<byte>();
+        return [];
     }
 
     private static string Filename(string directoryPath)

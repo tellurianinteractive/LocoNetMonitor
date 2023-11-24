@@ -8,7 +8,7 @@ public class WiThrottleServerTests
 {
     WiThrottleTestServer? Target { get; set; }
 
-    static readonly AppSettings TestSettings = new();
+    static readonly AppSettings TestSettings = new() { WiThrottleServer = new(12099, 10, 10) };
 
        [TestInitialize]
     public void TestInitialize()

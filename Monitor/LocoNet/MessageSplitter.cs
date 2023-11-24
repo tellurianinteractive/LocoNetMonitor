@@ -42,7 +42,7 @@ internal static class MessageSplitter
                 >= 0xA0 and <= 0xBF when data.Length - i >= 4 => new Packet(s.Slice(i, 4).ToArray()),
                 >= 0xC0 and <= 0xDF when data.Length - i >= 6 => new Packet(s.Slice(i, 6).ToArray()),
                 >= 0xE0 and <= 0xFF when data.Length - i >= data[i + 1] => new Packet(s.Slice(i, data[i + 1]).ToArray()),
-                _ => new Packet(data[i..].ToArray()) { IsComplete = false },
+                _ => new Packet([.. data[i..]]) { IsComplete = false },
             };
             if (packet is not null)
             {

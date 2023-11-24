@@ -34,9 +34,13 @@ internal class SlotTable : ISlotTable
         if (slot.HasNoAddress) await RequestSlot(slot, stoppingToken);
         else if (slot.HasNoOwner)
         {
-            slot.Owner = _locoOwnerService.GetOwner(slot.Address);
-            if (slot.HasOwner)
+            var loco = _locoOwnerService.GetLoco(slot.Address);
+            if (loco is not null)
+            {
+                slot.Owner = loco.OwnerName;
                 _logger.LogInformation("Slot {number} with address {address} was assigned to {owner}.", slot.Number, slot.Address, slot.Owner);
+
+            }
         }
         if (slot.Address > 0 && Settings.BlockDrivingForUnassignedAdresses && slot.HasNoOwner && slot.Speed > 1) await BlockLocoFromDriving(slot, stoppingToken);
         else if (slot.Usage <= Usage.Idle) await SetSlotActive(slot, stoppingToken);

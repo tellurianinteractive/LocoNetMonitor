@@ -12,7 +12,7 @@ public  class CsvFileLocoOwnerServiceTests
     {
         var options = Options.Create(new AppSettings() { CsvFileLocoAddressOwnerService = new CsvFileLocoAddressOwnerServiceSettings() { LocoOwnersListCsvFilePath = @"Test data\Loklista.txt" } });
         var target = new CsvFileLocoOwnerService(options, new NullLogger<CsvFileLocoOwnerService>());
-        var owner = target.GetOwner(56);
+        var owner = target.GetLoco(56);
         Assert.IsNotNull(owner);
     }
 }

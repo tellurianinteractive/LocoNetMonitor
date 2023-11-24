@@ -17,7 +17,7 @@ IHost host = Host.CreateDefaultBuilder(args)
     services.AddHostedService<UdpBroadcaster>();
     services.AddHostedService<UdpForwarder>();
     services.AddHostedService<SlotTableUpdater>();
-    services.AddHostedService<WiThrottleServer>(); 
+    //services.AddHostedService<WiThrottleServer>(); 
     services.AddSingleton<ISerialPortGateway, SerialPortGateway>();
 
     WriteStartingMessage(context, services);

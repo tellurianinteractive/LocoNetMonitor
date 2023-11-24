@@ -21,7 +21,7 @@ public record SlotTableSettings(bool BlockDrivingForUnassignedAdresses, int Loca
 
 public record WiThrottleServerSettings(int PortNumber, int Backlog, int Timeout)
 {
-    public WiThrottleSettings[] Throttles { get; set; } = Array.Empty<WiThrottleSettings>();
+    public WiThrottleSettings[] Throttles { get; set; } = [];
 }
 
 public record WiThrottleSettings(string Id);

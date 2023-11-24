@@ -7,7 +7,7 @@ internal static class MessageExtensions
 
     public static byte[] AppendChecksum(this byte[] dataWithoutChecksum)
     {
-        if (dataWithoutChecksum is null) return Array.Empty<byte>();
+        if (dataWithoutChecksum is null) return [];
         var length = dataWithoutChecksum.Length;
         var result = new byte[length + 1];
         Array.Copy(dataWithoutChecksum, 0, result, 0, length);
@@ -30,9 +30,9 @@ internal static class MessageExtensions
         if (message is null || message.Length == 0) return false;
         return message[0] switch
         {
-            >= 0x80 and <= 0x8F when message.Length == 2 && message[1] == Checksum(message[..1].ToArray()) => true,
-            >= 0xA0 and <= 0xBF when message.Length == 4 && message[3] == Checksum(message[..3].ToArray()) => true,
-            >= 0xC0 and <= 0xDF when message.Length == 6 && message[5] == Checksum(message[..5].ToArray()) => true,
+            >= 0x80 and <= 0x8F when message.Length == 2 && message[1] == Checksum([.. message[..1]]) => true,
+            >= 0xA0 and <= 0xBF when message.Length == 4 && message[3] == Checksum([.. message[..3]]) => true,
+            >= 0xC0 and <= 0xDF when message.Length == 6 && message[5] == Checksum([.. message[..5]]) => true,
             >= 0xE0 and <= 0xFF when message.Length == message[1] && message[message[1] - 1] == Checksum(message[..(message[1] - 1)]) => true,
             _ => false
         };
